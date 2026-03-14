@@ -9,7 +9,7 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-DIRECT_URL="postgresql://postgres:w9mHwJnhutmF5ic7@db.uqmurvqfcqwfzkqyhsmy.supabase.co:5432/postgres"
+DIRECT_URL="postgresql://postgres:w9mHwJnhutmF5ic7@db.uqmurvqfcqwfzkqyhsmy.supabase.co:5432/postgres
 
 model Organization {
   id        String   @id @default(cuid())
