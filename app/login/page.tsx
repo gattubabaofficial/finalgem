@@ -71,9 +71,11 @@ export default function LoginPage() {
     setLoading(true);
     const result = await signIn("credentials", { email, password, redirect: false });
     setLoading(false);
+    console.log("Login result:", result);
 
-    if (result?.error) {
-      if (result.error.includes("EMAIL_NOT_VERIFIED")) {
+    if (result?.error || (result as any)?.code) {
+      const errorString = String(result?.error || (result as any)?.code);
+      if (errorString.includes("EMAIL_NOT_VERIFIED")) {
         setError("Your email address has not been verified yet. Please check your inbox and click the verification link before signing in.");
       } else {
         setError("Invalid email or password. Please try again.");
