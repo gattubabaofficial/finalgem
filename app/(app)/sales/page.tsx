@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Plus, Search, TrendingUp, Loader2, X, AlertCircle, CheckCircle2, GitBranch } from "lucide-react";
 import { formatINR, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
 import ModalPortal from "@/components/ModalPortal";
+import Link from "next/link";
 
 type Sale = {
   id: string;
@@ -32,7 +33,7 @@ type SubLotCard = {
   length?: number;
 };
 
-type SubLot = { id: string; subLotNo: string; lotId: string; lot: { lotNumber: string }; weight: number; weightUnit: string; pieces?: number; shape?: string; size?: string; lines?: number; length?: number; status: string };
+type SubLot = { id: string; subLotNo: string; lotId: string; lot: { lotNumber: string; status?: string; category?: string; }; weight: number; weightUnit: string; pieces?: number; shape?: string; size?: string; lines?: number; length?: number; status: string };
 
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -141,22 +142,35 @@ export default function SalesPage() {
         const matched = subs.filter(
           (sl) => sl.lot.lotNumber.toLowerCase() === lotNo.trim().toLowerCase()
         );
-        const ready = matched.filter((sl) => sl.status === "READY");
+        // ONLY allow selling Ready Goods or Rough Gems.
+        // DO NOT allow selling products that are currently IN_PROCESS (manufacturing).
+        const validLots = matched.filter((sl) => {
+          const status = sl.lot.status;
+          const category = sl.lot.category;
+          
+          if (status === "IN_PROCESS") return false;
+          if (category !== "READY_GOODS" && category !== "ROUGH") return false;
+          
+          return true;
+        });
 
-        if (ready.length === 0) {
-          setLotError(`No READY sub-lots found for lot "${lotNo.trim()}".`);
+        if (matched.length > 0 && validLots.length === 0) {
+          setLotError(`Lot "${lotNo.trim()}" cannot be sold (currently in manufacturing or not a ready/rough good).`);
+          setAutoSubLot(null);
+        } else if (validLots.length === 0) {
+          setLotError(`Lot number "${lotNo.trim()}" not found.`);
           setAutoSubLot(null);
         } else {
-          setAutoSubLot(ready[0]);
+          setAutoSubLot(validLots[0]);
           setForm((prev) => ({
             ...prev,
-            weight: ready[0].weight.toString(),
-            weightUnit: ready[0].weightUnit || prev.weightUnit,
-            pieces: ready[0].pieces?.toString() || "",
-            shape: ready[0].shape || "",
-            size: ready[0].size || "",
-            lines: ready[0].lines?.toString() || "",
-            length: ready[0].length?.toString() || "",
+            weight: validLots[0].weight.toString(),
+            weightUnit: validLots[0].weightUnit || prev.weightUnit,
+            pieces: validLots[0].pieces?.toString() || "",
+            shape: validLots[0].shape || "",
+            size: validLots[0].size || "",
+            lines: validLots[0].lines?.toString() || "",
+            length: validLots[0].length?.toString() || "",
           }));
         }
       } catch (err) {
@@ -249,29 +263,31 @@ export default function SalesPage() {
           <table className="table table-hover my-0">
             <thead>
               <tr>
-                <th>Lot No</th><th>Sub Lot</th><th>Date</th><th>Sold To</th>
-                <th>Sale Price</th><th>Discount</th><th>Net Sale</th>
-                <th>Tax</th><th>Final Bill</th><th>Bill No</th><th>Status</th>
+                <th>Lot No</th>
+                <th>Date</th>
+                <th>Sold To</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} className="text-center py-5"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></td></tr>
+                <tr><td colSpan={4} className="text-center py-5"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></td></tr>
               ) : sales.length === 0 ? (
-                <tr><td colSpan={11} className="text-center py-5 text-muted">No sales yet.</td></tr>
+                <tr><td colSpan={4} className="text-center py-5 text-muted">No sales yet.</td></tr>
               ) : sales.map((s) => (
-                <tr key={s.id}>
-                  <td><span className="font-monospace text-primary fw-medium">{s.lot?.lotNumber || "N/A"}</span></td>
-                  <td><span className="font-monospace small">{s.lot?.product?.name || "—"}</span></td>
+                <tr key={s.id} className="cursor-pointer">
+                  <td>
+                    <Link href={`/sales/${s.id}`} className="text-decoration-none font-monospace fw-bold text-primary hover:underline">
+                      {s.lot?.lotNumber || "N/A"}
+                    </Link>
+                  </td>
                   <td>{formatDate(s.date)}</td>
                   <td>{s.customer || "—"}</td>
-                  <td>{formatINR(s.salePrice)}</td>
-                  <td className="text-danger">{s.discount > 0 ? `-${formatINR(s.discount)}` : "—"}</td>
-                  <td>{formatINR(s.netSale)}</td>
-                  <td>{s.tax > 0 ? formatINR(s.tax) : "—"}</td>
-                  <td className="fw-bold text-success">{formatINR(s.finalBillAmount)}</td>
-                  <td>{s.billNo || "—"}</td>
-                  <td><span className={`badge border ${getStatusColor(s.lot?.status || "SOLD")}`}>{getStatusLabel(s.lot?.status || "SOLD")}</span></td>
+                  <td>
+                    <span className={`badge bg-${getStatusColor(s.lot?.status || "SOLD")} text-white`}>
+                      {getStatusLabel(s.lot?.status || "SOLD")}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -322,18 +338,21 @@ export default function SalesPage() {
                 ) : (
                   <div className="d-flex flex-column gap-2">
                     {/* Active Sub Lot */}
-                    <div className="form-control bg-light d-flex justify-content-between align-items-center">
-                      <span className="font-monospace small fw-bold text-primary">{autoSubLot.subLotNo}</span>
-                      <span className="badge bg-secondary text-uppercase" style={{ fontSize: '10px' }}>Active</span>
-                    </div>
+                    {subLotCards.length === 0 && (
+                      <div className="form-control bg-light d-flex justify-content-between align-items-center">
+                        <span className="font-monospace small fw-bold text-primary">{autoSubLot.subLotNo}</span>
+                        <span className="badge bg-secondary text-uppercase" style={{ fontSize: '10px' }}>Active</span>
+                      </div>
+                    )}
 
                     {/* Auto-Generated (if any) */}
                     {subLotCards.map((card, idx) => (
                       <div key={card.reason} className="form-control bg-warning bg-opacity-10 border-warning border-opacity-25 d-flex justify-content-between align-items-center">
                         <div className="d-flex align-items-center gap-2">
-                          <span className="badge bg-warning text-dark px-1.5">#{idx + 1}</span>
-                          <span className="font-monospace small fw-bold text-warning d-flex align-items-center gap-1">
-                            <GitBranch className="w-3 h-3" /> Auto-Generated on Save
+                          <span className="font-monospace fw-bold text-warning d-flex align-items-center gap-1">
+                            <GitBranch className="w-4 h-4" /> 
+                            {autoSubLot.subLotNo}-{String.fromCharCode(65 + idx)} 
+                            <span className="ms-2 fw-normal opacity-75 small">(Auto-Generated on Save)</span>
                           </span>
                         </div>
                         <span className="badge bg-warning text-dark border border-warning" style={{ fontSize: '10px' }}>Partial Sale</span>

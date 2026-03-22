@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { formatINR, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
 import ModalPortal from "@/components/ModalPortal";
+import Link from "next/link";
 
 const WEIGHT_UNITS = ["G", "KG", "CT"];
 
@@ -71,6 +72,7 @@ type Purchase = {
   selectionPieces?: number;
   selectionLines?: number;
   selectionLength?: number;
+  rejectionWeight?: number;
 };
 
 type Mismatch = { field: string; label: string; purchaseValue: string; issuedValue: string };
@@ -104,8 +106,8 @@ export default function ManufacturingPage() {
   const [lotError, setLotError] = useState("");
   const [autoSubLot, setAutoSubLot] = useState<SubLot | null>(null); // primary sub-lot auto-selected
   const [purchase, setPurchase] = useState<Purchase | null>(null);
+  const [latestMfg, setLatestMfg] = useState<any | null>(null);
 
-  /* ── Sub-lot preview cards ── */
   const [subLotCards, setSubLotCards] = useState<SubLotCard[]>([]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -122,6 +124,22 @@ export default function ManufacturingPage() {
     labourCost: "", otherCost: "",
     entryType: "ISSUED",
   });
+
+  useEffect(() => {
+    if (autoSubLot) {
+      if (form.entryType === "ISSUED") {
+        const selectionWt = purchase ? ((purchase.netWeight || 0) - (purchase.rejectionWeight || 0)) : autoSubLot.weight;
+        setForm(p => ({ ...p, weight: selectionWt.toString() }));
+      } else if (form.entryType === "RECEIVED" && latestMfg) {
+        setForm(p => ({ 
+          ...p, 
+          weight: latestMfg.weight ? latestMfg.weight.toString() : p.weight,
+          issuedTo: latestMfg.issued_to || latestMfg.issuedTo || p.issuedTo
+        }));
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.entryType, autoSubLot, purchase, latestMfg]);
 
   /* ── Fetch records ── */
   const fetchRecords = useCallback(async () => {
@@ -151,7 +169,7 @@ export default function ManufacturingPage() {
   /* ── Debounced lot lookup ── */
   useEffect(() => {
     if (!lotNo.trim()) {
-      setAutoSubLot(null); setPurchase(null); setLotError(""); setSubLotCards([]);
+      setAutoSubLot(null); setPurchase(null); setLatestMfg(null); setLotError(""); setSubLotCards([]);
       return;
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -165,6 +183,7 @@ export default function ManufacturingPage() {
         const data = await r.json();
         const subs: SubLot[] = data.subLots || [];
         const purchasesMap: Record<string, Purchase> = data.purchasesByLotId || {};
+        const mnfsMap: Record<string, any> = data.manufacturingByLotId || {};
 
         const matched = subs.filter(
           (sl) => sl.lot.lotNumber.toLowerCase() === lotNo.trim().toLowerCase()
@@ -173,17 +192,20 @@ export default function ManufacturingPage() {
 
         if (inStock.length === 0) {
           setLotError(`No IN_STOCK sub-lots found for lot "${lotNo.trim()}".`);
-          setAutoSubLot(null); setPurchase(null);
+          setAutoSubLot(null); setPurchase(null); setLatestMfg(null);
         } else {
           // Pick primary sub-lot (largest weight)
           const primary = inStock.sort((a, b) => b.weight - a.weight)[0];
+          const foundPurchase = purchasesMap[primary.lotId] ?? null;
+          const foundMfg = mnfsMap[primary.lotId] ?? null;
           setAutoSubLot(primary);
-          setPurchase(purchasesMap[primary.lotId] ?? null);
+          setPurchase(foundPurchase);
+          setLatestMfg(foundMfg);
           setLotError("");
         }
       } catch {
         setLotError("Failed to look up lot.");
-        setAutoSubLot(null); setPurchase(null);
+        setAutoSubLot(null); setPurchase(null); setLatestMfg(null);
       }
       setLotLookupLoading(false);
     }, 500);
@@ -202,23 +224,24 @@ export default function ManufacturingPage() {
       const issuedLength  = parseFloat(form.length  || "0");
       const issuedSize    = form.size.trim().toLowerCase();
 
-      const refWeight  = purchase?.selectionWeight  ?? purchase?.netWeight   ?? autoSubLot.weight;
+      const refWeight = purchase ? ((purchase.netWeight || 0) - (purchase.rejectionWeight || 0)) : autoSubLot.weight;
       const refPieces  = purchase?.selectionPieces  ?? purchase?.pieces      ?? autoSubLot.pieces;
       const refLines   = purchase?.selectionLines   ?? purchase?.lines       ?? autoSubLot.lines;
       const refLength  = purchase?.selectionLength  ?? purchase?.lineLength  ?? autoSubLot.length;
       const refSize    = (autoSubLot.size ?? "").toLowerCase();
 
       const mismatches: Mismatch[] = [];
-      if (issuedWeight > 0 && refWeight > 0 && issuedWeight < refWeight)
+      if (issuedWeight > 0 && refWeight > 0 && issuedWeight < refWeight) {
         mismatches.push({ field: "weight",  label: "Weight",      purchaseValue: `${refWeight} ${autoSubLot.weightUnit}`,  issuedValue: `${issuedWeight} ${form.weightUnit}` });
-      if (issuedPieces > 0 && refPieces && issuedPieces < refPieces)
-        mismatches.push({ field: "pieces",  label: "Pieces",      purchaseValue: `${refPieces}`,                           issuedValue: `${issuedPieces}` });
-      if (issuedLines  > 0 && refLines  && issuedLines  < refLines)
-        mismatches.push({ field: "lines",   label: "Lines",       purchaseValue: `${refLines}`,                            issuedValue: `${issuedLines}` });
-      if (issuedLength > 0 && refLength && issuedLength < refLength)
-        mismatches.push({ field: "length",  label: "Line Length", purchaseValue: `${refLength}`,                           issuedValue: `${issuedLength}` });
-      if (issuedSize && refSize && issuedSize !== refSize)
-        mismatches.push({ field: "size",    label: "Size",        purchaseValue: autoSubLot.size ?? "",                    issuedValue: form.size });
+        if (issuedPieces > 0 && refPieces && issuedPieces < refPieces)
+          mismatches.push({ field: "pieces",  label: "Pieces",      purchaseValue: `${refPieces}`,                           issuedValue: `${issuedPieces}` });
+        if (issuedLines  > 0 && refLines  && issuedLines  < refLines)
+          mismatches.push({ field: "lines",   label: "Lines",       purchaseValue: `${refLines}`,                            issuedValue: `${issuedLines}` });
+        if (issuedLength > 0 && refLength && issuedLength < refLength)
+          mismatches.push({ field: "length",  label: "Line Length", purchaseValue: `${refLength}`,                           issuedValue: `${issuedLength}` });
+        if (issuedSize && refSize && issuedSize !== refSize)
+          mismatches.push({ field: "size",    label: "Size",        purchaseValue: autoSubLot.size ?? "",                    issuedValue: form.size });
+      }
 
       if (mismatches.length > 0 && issuedWeight > 0) {
         cards.push({
@@ -339,30 +362,40 @@ export default function ManufacturingPage() {
           <table className="table table-hover my-0">
             <thead>
               <tr>
-                <th>Lot No</th><th>Sub Lot</th><th>Date</th><th>Issued To</th>
-                <th>Weight</th><th>Pieces</th><th>Labour Cost</th><th>Other Cost</th>
-                <th>Total Mfg Cost</th><th>Status</th>
+                <th>Date</th>
+                <th>Lot No</th>
+                <th>Sub Lot No</th>
+                <th>Issued To</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="text-center py-5"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></td></tr>
+                <tr><td colSpan={4} className="text-center py-5"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></td></tr>
               ) : records.length === 0 ? (
-                <tr><td colSpan={10} className="text-center py-5 text-muted">No manufacturing records yet.</td></tr>
-              ) : records.map((m) => (
-                <tr key={m.id}>
-                  <td><span className="font-monospace text-primary fw-medium">{m.lot?.lotNumber || "N/A"}</span></td>
-                  <td><span className="font-monospace small">{m.lot?.product?.name || "—"}</span></td>
-                  <td>{formatDate(m.date)}</td>
-                  <td>{m.issuedTo || "—"}</td>
-                  <td>{m.weight} {m.weightUnit}</td>
-                  <td>{m.pieces || "—"}</td>
-                  <td>{formatINR(m.labourCost)}</td>
-                  <td>{formatINR(m.otherCost)}</td>
-                  <td className="fw-semibold text-warning">{formatINR(m.totalManufacturingCost)}</td>
-                  <td><span className={`badge border ${getStatusColor(m.lot?.status || "PENDING")}`}>{getStatusLabel(m.lot?.status || "PENDING")}</span></td>
-                </tr>
-              ))}
+                <tr><td colSpan={4} className="text-center py-5 text-muted">No manufacturing records yet.</td></tr>
+              ) : records.map((m) => {
+                const fullLot = m.lot?.lotNumber || "";
+                let baseLot = fullLot;
+                let subLot = "—";
+                // Only identify it as a sublot if it has exactly the 2-char auto-generated suffix e.g. -A, -B
+                if (fullLot.match(/-[A-Z]$/)) {
+                  baseLot = fullLot.slice(0, -2);
+                  subLot = fullLot;
+                }
+                
+                return (
+                  <tr key={m.id}>
+                    <td>{formatDate(m.date)}</td>
+                    <td>
+                      <Link href={`/manufacturing/${m.id}`} className="text-decoration-none font-mono fw-bold text-primary border-bottom border-primary border-opacity-25 pb-1 d-inline-flex align-items-center gap-1 hover-link">
+                        {baseLot || "N/A"}
+                      </Link>
+                    </td>
+                    <td><span className="font-monospace text-muted">{subLot}</span></td>
+                    <td><span className="fw-medium">{m.issuedTo || "—"}</span></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -429,19 +462,23 @@ export default function ManufacturingPage() {
                   ) : (
                     <div className="d-flex flex-column gap-2">
                       {/* Active Sub Lot */}
-                      <div className="form-control bg-light d-flex align-items-center justify-content-between" style={{ cursor: "not-allowed" }}>
-                        <span className="font-monospace small fw-bold text-primary">{autoSubLot.subLotNo}</span>
-                        <span className="badge bg-secondary text-uppercase fw-bold" style={{ fontSize: "10px" }}>Active</span>
-                      </div>
+                      {subLotCards.length === 0 && (
+                        <div className="form-control bg-light d-flex align-items-center justify-content-between" style={{ cursor: "not-allowed" }}>
+                          <span className="font-monospace small fw-bold text-primary">
+                            {autoSubLot.subLotNo}
+                          </span>
+                          <span className="badge bg-secondary text-uppercase fw-bold" style={{ fontSize: "10px" }}>Active</span>
+                        </div>
+                      )}
 
                       {/* Auto-Generated (if any) */}
                       {subLotCards.map((card, idx) => (
                         <div key={card.reason} className="form-control border-warning bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-between">
                           <div className="d-flex align-items-center gap-2">
-                            <span className="badge bg-warning bg-opacity-25 text-warning fw-bold py-1 px-2" style={{ fontSize: "10px" }}>#{idx + 1}</span>
-                            <span className="font-monospace small fw-bold tracking-wide d-flex align-items-center gap-1">
-                              <GitBranch className="w-3 h-3" />
-                              Auto-Generated on Save
+                            <span className="font-monospace fw-bold tracking-wide d-flex align-items-center gap-1">
+                              <GitBranch className="w-4 h-4" />
+                              {autoSubLot.subLotNo}-{String.fromCharCode(65 + idx)}
+                              <span className="ms-2 fw-normal opacity-75 small">(Auto-Generated on Save)</span>
                             </span>
                           </div>
                           <span className="badge border border-warning text-warning rounded-pill px-2 py-1" style={{ fontSize: "10px" }}>

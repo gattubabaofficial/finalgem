@@ -1,42 +1,55 @@
-import { prisma } from "@/lib/prisma";
+import { supabaseAdmin } from "@/lib/supabaseClient";
 
 export async function getProducts(organizationId: string) {
-  return prisma.product.findMany({
-    where: { organizationId },
-    orderBy: { createdAt: "desc" },
-  });
+  const { data, error } = await supabaseAdmin
+    .from("products")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
 }
 
-export async function createProduct(data: { name: string; category: string; description?: string; }, organizationId: string) {
-  if (!organizationId) {
-    throw new Error("Organization ID is required to create a product");
-  }
+export async function createProduct(
+  data: { name: string; category: string; description?: string },
+  organizationId: string
+) {
+  if (!organizationId) throw new Error("Organization ID is required to create a product");
 
-  // Auto-heal: ensure organization exists
-  await (prisma as any).organization.upsert({
-    where: { id: organizationId },
-    update: {},
-    create: { id: organizationId, name: "Default Organization" },
-  });
+  const { data: product, error } = await supabaseAdmin
+    .from("products")
+    .insert({
+      name: data.name,
+      category: data.category,
+      description: data.description,
+      organization_id: organizationId,
+    })
+    .select()
+    .single();
 
-  return prisma.product.create({
-    data: {
-      ...data,
-      organizationId,
-    },
-  });
+  if (error) throw new Error(error.message);
+  return product;
 }
 
 export async function getProductById(id: string, organizationId: string) {
-  return prisma.product.findFirst({
-    where: { id, organizationId },
-    include: { lots: true },
-  });
+  const { data, error } = await supabaseAdmin
+    .from("products")
+    .select("*, lots(*)")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 export async function deleteProduct(id: string, organizationId: string) {
-  // Ensure the product belongs to the organization before deleting
-  return prisma.product.delete({
-    where: { id, organizationId },
-  });
+  const { error } = await supabaseAdmin
+    .from("products")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
+
+  if (error) throw new Error(error.message);
 }

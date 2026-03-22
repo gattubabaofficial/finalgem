@@ -6,11 +6,11 @@ import { formatDate } from "@/lib/utils";
 
 type LedgerEntry = {
   id: string;
-  createdAt: string;
+  created_at: string;
   product: { name: string } | null;
-  transactionType: string;
+  transaction_type: string;
   quantity: number;
-  referenceId: string;
+  reference_id: string;
 };
 
 export default function LedgerPage() {
@@ -33,70 +33,82 @@ export default function LedgerPage() {
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
   return (
-    <div className="container-fluid p-0">
-      {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-white mb-1" /> Stock Movement Ledger
+    <div className="container-fluid p-0 pb-5">
+      {/* ── HEADER ── */}
+      <div className="px-4 pt-4">
+        <div className="mb-4">
+          <h1 className="h3 text-white fw-bold d-flex align-items-center gap-2 mb-1">
+            <BookOpen size={24} className="text-white" /> Stock Ledger
           </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            Complete audit trail of all stock movements · {total} entries
+          <p className="text-white text-opacity-75 small m-0">
+            Complete audit trail of all inventory movements ({total} entries)
           </p>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="card mb-3">
-        <div className="card-body p-3">
-          <div className="row">
-            <div className="col-auto">
-              <select value={refType} onChange={(e) => setRefType(e.target.value)} className="form-select w-auto">
-                <option value="">All Types</option>
-                <option value="PURCHASE">Purchase</option>
-                <option value="MANUFACTURING_ISSUE">Mfg Issue</option>
-                <option value="MANUFACTURING_RECEIPT">Mfg Receipt</option>
-                <option value="SALE">Sale</option>
-                <option value="REJECTION">Rejection</option>
+        {/* ── FILTERS ── */}
+        <div className="card mb-4 shadow-sm border-0 rounded-4">
+          <div className="card-body p-3">
+            <div className="d-flex align-items-center bg-white rounded-3 shadow-sm border border-light" style={{ padding: "8px 16px", maxWidth: "400px" }}>
+              <Search size={18} className="text-muted flex-shrink-0 me-3" />
+              <select 
+                value={refType} 
+                onChange={(e) => setRefType(e.target.value)} 
+                className="form-select border-0 bg-transparent shadow-none p-0 pe-4"
+                style={{ outline: "none", cursor: "pointer", fontWeight: 500 }}
+              >
+                <option value="">All Transaction Types</option>
+                <option value="PURCHASE">Purchase Intake</option>
+                <option value="MANUFACTURING_ISSUE">Manufacturing Issue</option>
+                <option value="MANUFACTURING_RECEIPT">Manufacturing Receipt</option>
+                <option value="SALE">Distribution / Sale</option>
+                <option value="REJECTION">Material Rejection</option>
               </select>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="card flex-fill w-100">
-        <div className="table-responsive">
-          <table className="table table-hover my-0">
-            <thead>
-              <tr>
-                <th>Date</th><th>Product</th>
-                <th>Quantity</th><th>Type</th><th>Ref ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={5} className="text-center py-5"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></td></tr>
-              ) : entries.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-5 text-muted">No ledger entries yet. Ledger is auto-populated on transactions.</td></tr>
-              ) : entries.map((e) => (
-                <tr key={e.id}>
-                  <td className="whitespace-nowrap">{formatDate(e.createdAt)}</td>
-                  <td><span className="font-monospace text-primary fw-medium">{e.product?.name || "—"}</span></td>
-                  <td>
-                    <span className={e.quantity > 0 ? "text-success fw-bold" : "text-danger fw-bold"}>
-                      {e.quantity > 0 ? "+" : ""}{e.quantity}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="badge bg-light text-dark border">
-                      {e.transactionType}
-                    </span>
-                  </td>
-                  <td><span className="font-monospace small text-muted">{e.referenceId}</span></td>
+        {/* ── TABLE ── */}
+        <div className="card shadow-sm border-0 overflow-hidden rounded-4">
+          <div className="table-responsive">
+            <table className="table table-hover align-middle my-0 bg-white">
+              <thead className="bg-light border-bottom">
+                <tr className="text-muted small text-uppercase tracking-wider">
+                  <th className="ps-4 py-3 fw-semibold">Date</th>
+                  <th className="py-3 fw-semibold">Product</th>
+                  <th className="py-3 fw-semibold text-center">Quantity</th>
+                  <th className="py-3 fw-semibold text-center">Type</th>
+                  <th className="text-end pe-4 py-3 fw-semibold">Reference ID</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={5} className="text-center py-5"><Loader2 size={32} className="animate-spin mx-auto text-primary opacity-30" /></td></tr>
+                ) : entries.length === 0 ? (
+                  <tr><td colSpan={5} className="text-center py-5 text-muted fst-italic">No ledger entries match your filter.</td></tr>
+                ) : entries.map((e) => (
+                  <tr key={e.id}>
+                    <td className="ps-4 py-3 text-muted small whitespace-nowrap">{formatDate(e.created_at)}</td>
+                    <td className="py-3"><span className="font-monospace fw-bold text-dark">{e.product?.name || "—"}</span></td>
+                    <td className="py-3 text-center">
+                      <span className={`badge px-3 py-2 fs-6 shadow-sm border ${e.quantity > 0 ? "bg-success bg-opacity-10 text-success border-success border-opacity-25" : e.quantity < 0 ? "bg-danger bg-opacity-10 text-danger border-danger border-opacity-25" : "bg-light text-muted border-light"}`}>
+                        {e.quantity > 0 ? "+" : ""}{e.quantity}
+                      </span>
+                    </td>
+                    <td className="py-3 text-center">
+                      <span className="badge bg-light text-secondary border fw-medium px-3 py-2">
+                        {e.transaction_type || "UNKNOWN"}
+                      </span>
+                    </td>
+                    <td className="text-end pe-4 py-3">
+                      <span className="font-monospace small fw-bold text-muted bg-light px-3 py-2 rounded shadow-sm border">
+                        {e.reference_id || "—"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { useRole } from "@/hooks/useRole";
 import { 
   ArrowLeft, Edit, Save, Trash2, 
   Loader2, AlertCircle, CheckCircle2,
@@ -22,6 +23,7 @@ interface Params {
 export default function PurchaseDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { isAdmin } = useRole();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -229,20 +231,20 @@ export default function PurchaseDetailPage({ params }: { params: Promise<Params>
         <div className="d-flex align-items-center gap-3">
           {!isEditMode ? (
             <>
-              <button 
+              {isAdmin && <button 
                 onClick={() => setIsEditMode(true)}
                 className="btn btn-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-primary-sm fw-bold border-0 transition-all hover-scale"
               >
                 <Edit size={18} /> Edit Entry
-              </button>
-              <button 
+              </button>}
+              {isAdmin && <button 
                 onClick={handleDelete}
                 disabled={deleting}
                 className="btn btn-white text-danger d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm border-0 transition-all hover-bg-danger-subtle"
               >
                 {deleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />} 
                 <span className="fw-semibold">Remove</span>
-              </button>
+              </button>}
             </>
           ) : (
             <>

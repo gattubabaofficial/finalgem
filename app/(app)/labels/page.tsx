@@ -111,7 +111,7 @@ export default function LabelsPage() {
     doc.setTextColor(100, 100, 120);
     doc.setFontSize(5.5);
     doc.setFont("helvetica", "normal");
-    doc.text(`Generated: ${formatDate(new Date())}`, pageW / 2, pageH - 3, { align: "center" });
+    doc.text(`Generated: ${formatDate(new Date().toISOString())}`, pageW / 2, pageH - 3, { align: "center" });
 
     doc.save(`label-${selected.lot.lotNo}-${selected.subLotNo}.pdf`);
     setGenerating(false);

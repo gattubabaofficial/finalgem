@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
+import { auth } from "@/auth";
 import { getTenantContext } from "@/lib/auth/getContext";
 import * as purchaseService from "@/lib/services/purchaseService";
+
+function isAdmin(session: any) {
+  const role = (session?.user as any)?.role;
+  return role === "ADMIN" || role === "SUPERADMIN";
+}
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -16,6 +22,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await auth();
+    if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden: Only admins can edit records." }, { status: 403 });
     const { organizationId } = await getTenantContext();
     const body = await req.json();
     const purchase = await purchaseService.updatePurchase((await params).id, body, organizationId);
@@ -27,6 +35,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await auth();
+    if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden: Only admins can delete records." }, { status: 403 });
     const { organizationId } = await getTenantContext();
     await purchaseService.deletePurchase((await params).id, organizationId);
     return new NextResponse(null, { status: 204 });

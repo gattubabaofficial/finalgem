@@ -3,10 +3,12 @@ export const dynamic = "force-dynamic";
 import { getTenantContext } from "@/lib/auth/getContext";
 import * as purchaseService from "@/lib/services/purchaseService";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { organizationId } = await getTenantContext();
-    const purchases = await purchaseService.getPurchases(organizationId);
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") || "";
+    const purchases = await purchaseService.getPurchases(organizationId, search);
     return NextResponse.json(purchases);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 401 });

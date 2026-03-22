@@ -33,7 +33,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64" suppressHydrationWarning={true}>
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const profit = (stats?.totalSaleValue || 0) - (stats?.totalPurchaseValue || 0);
 
   return (
-    <div className="container-fluid p-0">
+    <div className="container-fluid p-0" suppressHydrationWarning={true}>
       {/* Header */}
       <div className="row mb-2 mb-xl-3">
         <div className="col-auto d-none d-sm-block">
@@ -62,37 +62,36 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      {/* Stat Cards */}
-      <div className="row">
-        <div className="col-12 col-sm-6 col-xxl-3 d-flex">
+      <div className="row mt-4 pt-3 pt-sm-0 mt-sm-0">
+        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
           <StatCard
             title="Total Lots"
             value={stats?.totalLots || 0}
-            icon={<Package className="align-middle" />}
+            icon={<Package size={18} className="align-middle" />}
             color="primary"
           />
         </div>
-        <div className="col-12 col-sm-6 col-xxl-3 d-flex">
+        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
           <StatCard
-            title="Total Sub-Lots"
+            title="Sub-Lots"
             value={stats?.totalSubLots || 0}
-            icon={<Gem className="align-middle" />}
+            icon={<Gem size={18} className="align-middle" />}
             color="success"
           />
         </div>
-        <div className="col-12 col-sm-6 col-xxl-3 d-flex">
+        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
           <StatCard
             title="Purchase Value"
             value={formatINR(stats?.totalPurchaseValue || 0)}
-            icon={<ShoppingCart className="align-middle" />}
+            icon={<ShoppingCart size={18} className="align-middle" />}
             color="warning"
           />
         </div>
-        <div className="col-12 col-sm-6 col-xxl-3 d-flex">
+        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
           <StatCard
             title="Sales Value"
             value={formatINR(stats?.totalSaleValue || 0)}
-            icon={<TrendingUp className="align-middle" />}
+            icon={<TrendingUp size={18} className="align-middle" />}
             color="info"
           />
         </div>
@@ -271,19 +270,15 @@ function StatCard({ title, value, icon, color }: {
   color: "primary" | "success" | "warning" | "info" | "danger";
 }) {
   return (
-    <div className="card flex-fill">
-      <div className="card-body">
-        <div className="row">
-          <div className="col mt-0">
-            <h5 className="card-title">{title}</h5>
-          </div>
-          <div className="col-auto">
-            <div className={`stat text-${color}`}>
-              {icon}
-            </div>
+    <div className="card flex-fill mb-3 shadow-sm border-0">
+      <div className="card-body p-2 p-sm-3">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <h6 className="card-title text-muted mb-0" style={{ fontSize: "0.80rem" }}>{title}</h6>
+          <div className={`text-${color}`}>
+            {icon}
           </div>
         </div>
-        <h1 className="mt-1 mb-3">{value}</h1>
+        <h4 className="mt-1 mb-0 fw-bold">{value}</h4>
       </div>
     </div>
   );

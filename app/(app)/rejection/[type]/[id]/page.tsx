@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
+import { useRole } from "@/hooks/useRole";
 
 interface RejectionDetailProps {
   params: Promise<{ type: string; id: string }>;
@@ -28,6 +29,7 @@ interface RejectionDetailProps {
 
 export default function RejectionDetailPage({ params }: RejectionDetailProps) {
   const { type, id } = use(params);
+  const { isAdmin } = useRole();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -136,31 +138,31 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
           </div>
           
           <div className="d-flex align-items-center gap-3">
-             <button 
+             {isAdmin && <button 
                 onClick={() => setIsEditMode(!isEditMode)}
                 className={`btn ${isEditMode ? 'btn-white text-primary' : 'bg-white bg-opacity-10 text-white'} d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-bold border border-white border-opacity-25 transition-all`}
               >
                 <Edit3 size={18} />
                 {isEditMode ? "Cancel Edit" : "Edit Entry"}
-              </button>
+              </button>}
 
-             <button 
+             {isAdmin && <button 
                 onClick={handleUpdate}
                 disabled={saving || !isEditMode}
                 className="btn btn-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-primary-sm fw-bold border-0 transition-all hover-scale"
               >
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 {saving ? "Saving..." : "Update Action"}
-              </button>
+              </button>}
 
-              <button 
+              {isAdmin && <button 
                 onClick={handleDelete}
                 disabled={saving}
                 className="btn btn-link text-white text-opacity-75 hover-text-danger transition-all d-flex align-items-center gap-2 text-decoration-none"
               >
                 <Trash2 size={18} />
                 <span className="small fw-bold uppercase px-1">Remove</span>
-              </button>
+              </button>}
           </div>
         </div>
       </div>
@@ -199,7 +201,11 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                           {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o.replace(/_/g, " ")}</option>)}
                         </select>
                       ) : (
-                        <div className="fw-extrabold text-dark fs-5">{status.replace(/_/g, " ")}</div>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className={`badge ${status === 'PENDING' ? 'bg-warning text-dark' : status === 'RETURNED' ? 'bg-info text-white' : status === 'RESELLABLE' ? 'bg-success text-white' : status === 'REJECTED' || status === 'CLOSED' ? 'bg-danger text-white' : 'bg-primary text-white'} px-3 py-2 rounded-pill fw-bold`}>
+                            {status.replace(/_/g, " ")}
+                          </span>
+                        </div>
                       )}
                     </ModernField>
                   </div>
@@ -262,8 +268,14 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                 <div className="space-y-4">
                   {type === "purchase" && (
                      <>
-                        <ModernStatRow label="Gross Weight" value={`${data.grossWeight} ${data.weightUnit}`} />
-                        <ModernStatRow label="Less Weight" value={`${data.lessWeight} ${data.weightUnit}`} color="text-rose" />
+                        <ModernStatRow label="Gross Weight" value={`${data.grossWeight || 0} ${data.weightUnit || ""}`} />
+                        <ModernStatRow label="Less Weight" value={`${data.lessWeight || 0} ${data.weightUnit || ""}`} color="text-rose" />
+                        <ModernStatRow label="Net Weight" value={`${(data.grossWeight || 0) - (data.lessWeight || 0)} ${data.weightUnit || ""}`} color="text-emerald" isLarge />
+                        
+                        <div className="mt-4 pt-3 border-top border-white border-opacity-10">
+                          <ModernStatRow label="Rejected Weight" value={`${data.rejectionWeight || data.returnedWeight || 0} ${data.weightUnit || ""}`} color="text-warning" />
+                          <ModernStatRow label="Remaining Selection" value={`${((data.grossWeight || 0) - (data.lessWeight || 0)) - (data.rejectionWeight || data.returnedWeight || 0)} ${data.weightUnit || ""}`} color="text-info" />
+                        </div>
                      </>
                   )}
                   {data.netSale && (

@@ -20,7 +20,7 @@ function getInitials(name: string) {
 
 export default function Navbar({ userName, userRole }: NavbarProps) {
   const initials = getInitials(userName || "User");
-  const { isMini, toggleSidebar } = useSidebar();
+  const { isMini, toggleSidebar, toggleMobileSidebar } = useSidebar();
 
   return (
     <nav 
@@ -30,8 +30,21 @@ export default function Navbar({ userName, userRole }: NavbarProps) {
     >
       <div className="container-fluid navbar-inner" suppressHydrationWarning>
 
-        {/* Sidebar toggle */}
-        <div className="sidebar-toggle" data-toggle="sidebar" data-active="true" onClick={toggleSidebar} suppressHydrationWarning>
+        {/* Mobile hamburger — visible only on small screens */}
+        <button
+          className="d-lg-none btn p-1 me-2 border-0"
+          onClick={toggleMobileSidebar}
+          aria-label="Open menu"
+          style={{ lineHeight: 1 }}
+          suppressHydrationWarning
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+
+        {/* Desktop sidebar toggle — hidden on mobile */}
+        <div className="sidebar-toggle d-none d-lg-flex" data-toggle="sidebar" data-active="true" onClick={toggleSidebar} suppressHydrationWarning>
           <i className="icon">
             <svg width="20px" className="icon-20" viewBox="0 0 24 24">
               <path fill="currentColor" d="M4,11V13H16L10.5,18.5L11.92,19.92L19.84,12L11.92,4.08L10.5,5.5L16,11H4Z" />
@@ -75,8 +88,8 @@ export default function Navbar({ userName, userRole }: NavbarProps) {
                     <h5 className="mb-0 text-white">Notifications</h5>
                   </div>
                 </div>
-                <div className="p-0 card-body">
-                  <a href="#" className="iq-sub-card d-flex align-items-center gap-3 p-3">
+                <div className="p-0 card-body" suppressHydrationWarning>
+                  <a href="#" className="iq-sub-card d-flex align-items-center gap-3 p-3" suppressHydrationWarning>
                     <div
                       className="rounded-pill bg-soft-primary d-flex align-items-center justify-content-center flex-shrink-0"
                       style={{ width: 40, height: 40 }}
@@ -138,7 +151,7 @@ export default function Navbar({ userName, userRole }: NavbarProps) {
                 </div>
                 {/* Body */}
                 <div className="p-0 card-body" suppressHydrationWarning>
-                  <Link href="#" className="iq-sub-card d-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark">
+                  <Link href="#" className="iq-sub-card d-flex align-items-center gap-2 px-3 py-2 text-decoration-none text-dark" suppressHydrationWarning>
                     <svg width="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M11.9488 14.54C8.498 14.54 5.588 15.104 5.588 17.28C5.588 19.456 8.518 20 11.9488 20C15.399 20 18.31 19.436 18.31 17.261C18.31 15.084 15.38 14.54 11.9488 14.54Z" fill="currentColor"/>
                       <path opacity="0.4" d="M11.949 12.467C14.285 12.467 16.158 10.583 16.158 8.234C16.158 5.883 14.285 4 11.949 4C9.613 4 7.74 5.883 7.74 8.234C7.74 10.583 9.613 12.467 11.949 12.467Z" fill="currentColor"/>

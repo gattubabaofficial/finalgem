@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Gem Inventory Management System",
@@ -13,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" dir="ltr" suppressHydrationWarning>
+    <html lang="en" dir="ltr" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />

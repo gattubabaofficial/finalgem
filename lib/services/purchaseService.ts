@@ -1,264 +1,252 @@
-import { prisma } from "@/lib/prisma";
-import { createStockLedgerEntry } from "./inventoryService";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import { toCamelCase } from "@/lib/utils";
+
 
 export async function getPurchases(organizationId: string, search?: string) {
-  const where: any = { organizationId };
+  let query = supabaseAdmin
+    .from("purchases")
+    .select("*, lot:lots(*, product:products(*), manufacturing(*), sales(*))")
+    .eq("organization_id", organizationId)
+    .order("date", { ascending: false });
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+
+  let mapped = toCamelCase(data || []);
+
   if (search) {
-    where.OR = [
-      { supplier: { contains: search, mode: "insensitive" } },
-      { lot: { lotNumber: { contains: search, mode: "insensitive" } } },
-      { itemName: { contains: search, mode: "insensitive" } },
-    ];
+    const s = search.toLowerCase();
+    mapped = mapped.filter((p: any) => {
+      const lotNo = p.lot?.lotNumber?.toLowerCase() || "";
+      const supplier = p.supplier?.toLowerCase() || p.lot?.supplierName?.toLowerCase() || "";
+      const item = p.itemName?.toLowerCase() || p.lot?.itemName?.toLowerCase() || "";
+      const hasWorker = p.lot?.manufacturing?.some((m: any) => m.workerName?.toLowerCase().includes(s));
+      const hasBuyer = p.lot?.sales?.some((sl: any) => sl.buyerName?.toLowerCase().includes(s));
+      
+      return lotNo.includes(s) || supplier.includes(s) || item.includes(s) || hasWorker || hasBuyer;
+    });
   }
 
-  return (prisma as any).purchase.findMany({
-    where,
-    include: { 
-      lot: { 
-        include: { 
-          product: true 
-        } 
-      } 
-    },
-    orderBy: { date: "desc" },
-  });
+  return mapped;
 }
 
-export async function createPurchase(
-  data: any,
-  organizationId: string
-) {
-  if (!organizationId) {
-    throw new Error("Organization ID is required to create a purchase");
+export async function createPurchase(data: any, organizationId: string) {
+  if (!organizationId) throw new Error("Organization ID is required to create a purchase");
+
+  // 1. Find or Create Product
+  let { data: product } = await supabaseAdmin
+    .from("products")
+    .select("id")
+    .eq("name", data.itemName || "General Item")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (!product) {
+    const { data: newProduct, error: pErr } = await supabaseAdmin
+      .from("products")
+      .insert({
+        name: data.itemName || "General Item",
+        category: data.category || "ROUGH",
+        organization_id: organizationId,
+      })
+      .select()
+      .single();
+    if (pErr) throw new Error(pErr.message);
+    product = newProduct;
   }
 
-  // Auto-heal: create the Organization row if it is missing
-  // This handles cases where the DB was re-seeded but the User row still has the old ID
-  await (prisma as any).organization.upsert({
-    where: { id: organizationId },
-    update: {},
-    create: { id: organizationId, name: "Default Organization" },
+  // Guard: product must be non-null at this point
+  if (!product) throw new Error("Failed to find or create product");
+
+  // 2. Create the Lot
+  const { data: lot, error: lotErr } = await supabaseAdmin
+    .from("lots")
+    .insert({
+      lot_number: data.lotNo,
+      product_id: product.id,
+      item_name: data.itemName,
+      supplier_name: data.supplierName,
+      category: data.category,
+      description_ref: data.descriptionRef,
+      gross_weight: data.grossWeight,
+      less_weight: data.lessWeight || 0,
+      net_weight: data.grossWeight - (data.lessWeight || 0),
+      weight_unit: data.weightUnit || "G",
+      size: data.size,
+      shape: data.shape,
+      pieces: data.pieces,
+      lines: data.lines,
+      line_length: data.lineLength,
+      quantity: data.pieces || 0,
+      status: "IN_STOCK",
+      organization_id: organizationId,
+    })
+    .select()
+    .single();
+  if (lotErr) throw new Error(lotErr.message);
+
+  // 3. Create the Purchase record
+  const { data: purchase, error: purchErr } = await supabaseAdmin
+    .from("purchases")
+    .insert({
+      lot_id: lot.id,
+      supplier: data.supplierName || data.supplier,
+      item_name: data.itemName,
+      description_ref: data.descriptionRef,
+      date: data.date || new Date().toISOString(),
+      gross_weight: data.grossWeight,
+      less_weight: data.lessWeight || 0,
+      net_weight: data.grossWeight - (data.lessWeight || 0),
+      weight_unit: data.weightUnit || "G",
+      size: data.size,
+      shape: data.shape,
+      pieces: data.pieces,
+      lines: data.lines,
+      line_length: data.lineLength,
+      purchase_price: data.purchasePrice,
+      total_cost: data.purchasePrice,
+      cost_per_gram: data.purchasePrice / (data.grossWeight - (data.lessWeight || 0)) || 0,
+      rejection_weight: data.rejectionWeight,
+      rejection_pieces: data.rejectionPieces,
+      rejection_lines: data.rejectionLines,
+      rejection_length: data.rejectionLength,
+      rejection_date: data.rejectionDate || null,
+      rejection_status: data.rejectionStatus || "PENDING",
+      organization_id: organizationId,
+    })
+    .select()
+    .single();
+  if (purchErr) throw new Error(purchErr.message);
+
+  // 4. Update Stock Ledger
+  await supabaseAdmin.from("stock_ledgers").insert({
+    product_id: product.id,
+    transaction_type: "PURCHASE",
+    weight: data.grossWeight - (data.lessWeight || 0),
+    quantity: data.pieces,
+    reference_id: purchase.id,
+    organization_id: organizationId,
   });
 
-  return prisma.$transaction(async (tx) => {
-    // 1. Find or Create Product
-    let product = await (tx as any).product.findFirst({
-      where: { name: data.itemName || "General Item", organizationId },
-    });
-
-    if (!product) {
-      product = await (tx as any).product.create({
-        data: {
-          name: data.itemName || "General Item",
-          category: data.category || "ROUGH",
-          organizationId,
-        },
-      });
-    }
-
-    // 2. Create the Lot
-    const lot = await (tx as any).lot.create({
-      data: {
-        lotNumber: data.lotNo,
-        productId: product.id,
-        itemName: data.itemName,
-        supplierName: data.supplierName,
-        category: data.category,
-        descriptionRef: data.descriptionRef,
-        grossWeight: data.grossWeight,
-        lessWeight: data.lessWeight || 0,
-        netWeight: data.grossWeight - (data.lessWeight || 0),
-        weightUnit: data.weightUnit || "G",
-        size: data.size,
-        shape: data.shape,
-        pieces: data.pieces,
-        lines: data.lines,
-        lineLength: data.lineLength,
-        quantity: data.pieces || 0,
-        status: "IN_STOCK",
-        organizationId,
-      },
-    });
-
-    // 3. Create the Purchase record
-    const purchase = await (tx as any).purchase.create({
-      data: {
-        lotId: lot.id,
-        supplier: data.supplierName || data.supplier,
-        itemName: data.itemName,
-        descriptionRef: data.descriptionRef,
-        date: data.date ? new Date(data.date) : new Date(),
-        
-        grossWeight: data.grossWeight,
-        lessWeight: data.lessWeight || 0,
-        netWeight: data.grossWeight - (data.lessWeight || 0),
-        weightUnit: data.weightUnit || "G",
-        
-        size: data.size,
-        shape: data.shape,
-        pieces: data.pieces,
-        lines: data.lines,
-        lineLength: data.lineLength,
-        
-        purchasePrice: data.purchasePrice,
-        totalCost: data.purchasePrice, // Total cost for the lot
-        costPerGram: data.purchasePrice / (data.grossWeight - (data.lessWeight || 0)) || 0,
-        
-        rejectionWeight: data.rejectionWeight,
-        rejectionPieces: data.rejectionPieces,
-        rejectionLines: data.rejectionLines,
-        rejectionLength: data.rejectionLength,
-        rejectionDate: data.rejectionDate ? new Date(data.rejectionDate) : null,
-        rejectionStatus: data.rejectionStatus || "PENDING",
- 
-        organizationId,
-      },
-    });
-
-    // 4. Update Stock Ledger
-    await (tx as any).stockLedger.create({
-      data: {
-        productId: product.id,
-        transactionType: "PURCHASE",
-        weight: data.grossWeight - (data.lessWeight || 0),
-        quantity: data.pieces,
-        referenceId: purchase.id,
-        organizationId,
-      },
-    });
-
-    return purchase;
-  });
+  return purchase;
 }
 
 export async function getPurchaseById(id: string, organizationId: string) {
-  return (prisma as any).purchase.findFirst({
-    where: { id, organizationId },
-    include: { 
-      lot: { 
-        include: { 
-          product: true 
-        } 
-      } 
-    },
-  });
+  const { data, error } = await supabaseAdmin
+    .from("purchases")
+    .select("*, lot:lots(*, product:products(*))")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return toCamelCase(data);
 }
 
-export async function updatePurchase(
-  id: string,
-  data: any,
-  organizationId: string
-) {
-  return prisma.$transaction(async (tx) => {
-    const purchase = await (tx as any).purchase.findFirst({
-      where: { id, organizationId },
-      include: { lot: true },
-    });
+export async function updatePurchase(id: string, data: any, organizationId: string) {
+  // 1. Fetch existing purchase
+  const { data: purchase, error: fetchErr } = await supabaseAdmin
+    .from("purchases")
+    .select("lot_id")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
 
-    if (!purchase) throw new Error("Purchase not found");
+  if (fetchErr || !purchase) throw new Error("Purchase not found");
 
-    // 1. Update the Lot
-    const lot = await (tx as any).lot.update({
-      where: { id: purchase.lotId },
-      data: {
-        lotNumber: data.lotNo,
-        itemName: data.itemName,
-        supplierName: data.supplierName,
-        category: data.category,
-        descriptionRef: data.descriptionRef,
-        grossWeight: data.grossWeight,
-        lessWeight: data.lessWeight || 0,
-        netWeight: data.grossWeight - (data.lessWeight || 0),
-        weightUnit: data.weightUnit || "G",
-        size: data.size,
-        shape: data.shape,
-        pieces: data.pieces,
-        lines: data.lines,
-        lineLength: data.lineLength,
-        quantity: data.pieces || 0,
-      },
-    });
+  // 2. Update the Lot
+  await supabaseAdmin
+    .from("lots")
+    .update({
+      lot_number: data.lotNo,
+      item_name: data.itemName,
+      supplier_name: data.supplierName,
+      category: data.category,
+      description_ref: data.descriptionRef,
+      gross_weight: data.grossWeight,
+      less_weight: data.lessWeight || 0,
+      net_weight: data.grossWeight - (data.lessWeight || 0),
+      weight_unit: data.weightUnit || "G",
+      size: data.size,
+      shape: data.shape,
+      pieces: data.pieces,
+      lines: data.lines,
+      line_length: data.lineLength,
+      quantity: data.pieces || 0,
+    })
+    .eq("id", purchase.lot_id);
 
-    // 2. Update the Purchase record
-    const updatedPurchase = await (tx as any).purchase.update({
-      where: { id },
-      data: {
-        supplier: data.supplierName || data.supplier || "",
-        itemName: data.itemName,
-        descriptionRef: data.descriptionRef,
-        date: data.date ? new Date(data.date) : new Date(),
-        
-        grossWeight: data.grossWeight,
-        lessWeight: data.lessWeight || 0,
-        netWeight: data.grossWeight - (data.lessWeight || 0),
-        weightUnit: data.weightUnit || "G",
-        
-        size: data.size,
-        shape: data.shape,
-        pieces: data.pieces,
-        lines: data.lines,
-        lineLength: data.lineLength,
-        
-        purchasePrice: data.purchasePrice,
-        totalCost: data.purchasePrice,
-        costPerGram: data.purchasePrice / (data.grossWeight - (data.lessWeight || 0)) || 0,
-        
-        rejectionWeight: data.rejectionWeight,
-        rejectionPieces: data.rejectionPieces,
-        rejectionLines: data.rejectionLines,
-        rejectionLength: data.rejectionLength,
-        rejectionDate: data.rejectionDate ? new Date(data.rejectionDate) : null,
-        rejectionStatus: data.rejectionStatus || "PENDING",
-      },
-    });
+  // 3. Update the Purchase record
+  const { data: updated, error: updErr } = await supabaseAdmin
+    .from("purchases")
+    .update({
+      supplier: data.supplierName || data.supplier || "",
+      item_name: data.itemName,
+      description_ref: data.descriptionRef,
+      date: data.date || new Date().toISOString(),
+      gross_weight: data.grossWeight,
+      less_weight: data.lessWeight || 0,
+      net_weight: data.grossWeight - (data.lessWeight || 0),
+      weight_unit: data.weightUnit || "G",
+      size: data.size,
+      shape: data.shape,
+      pieces: data.pieces,
+      lines: data.lines,
+      line_length: data.lineLength,
+      purchase_price: data.purchasePrice,
+      total_cost: data.purchasePrice,
+      cost_per_gram: data.purchasePrice / (data.grossWeight - (data.lessWeight || 0)) || 0,
+      rejection_weight: data.rejectionWeight,
+      rejection_pieces: data.rejectionPieces,
+      rejection_lines: data.rejectionLines,
+      rejection_length: data.rejectionLength,
+      rejection_date: data.rejectionDate || null,
+      rejection_status: data.rejectionStatus || "PENDING",
+    })
+    .eq("id", id)
+    .select()
+    .single();
 
-    // 3. Update Stock Ledger
-    await (tx as any).stockLedger.updateMany({
-      where: {
-        referenceId: id,
-        transactionType: "PURCHASE",
-        organizationId,
-      },
-      data: {
-        weight: data.grossWeight - (data.lessWeight || 0),
-        quantity: data.pieces,
-      },
-    });
+  if (updErr) throw new Error(updErr.message);
 
-    return updatedPurchase;
-  });
+  // 4. Update Stock Ledger
+  await supabaseAdmin
+    .from("stock_ledgers")
+    .update({
+      weight: data.grossWeight - (data.lessWeight || 0),
+      quantity: data.pieces,
+    })
+    .eq("reference_id", id)
+    .eq("transaction_type", "PURCHASE")
+    .eq("organization_id", organizationId);
+
+  return updated;
 }
 
 export async function deletePurchase(id: string, organizationId: string) {
-  return prisma.$transaction(async (tx) => {
-    const purchase = await tx.purchase.findFirst({
-      where: { id, organizationId },
-      include: { lot: true },
-    });
+  // 1. Fetch the purchase to get lot_id
+  const { data: purchase, error: fetchErr } = await supabaseAdmin
+    .from("purchases")
+    .select("lot_id")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
 
-    if (!purchase) throw new Error("Purchase not found");
+  if (fetchErr || !purchase) throw new Error("Purchase not found");
 
-    // 1. Delete associated Stock Ledger entry
-    await tx.stockLedger.deleteMany({
-      where: {
-        referenceId: id,
-        transactionType: "PURCHASE",
-        organizationId,
-      },
-    });
+  // 2. Delete Stock Ledger entries
+  await supabaseAdmin
+    .from("stock_ledgers")
+    .delete()
+    .eq("reference_id", id)
+    .eq("transaction_type", "PURCHASE")
+    .eq("organization_id", organizationId);
 
-    // 2. Delete the purchase
-    const result = await tx.purchase.delete({
-      where: { id },
-    });
-    
-    // 3. Delete the lot too since they are 1:1 in this context
-    if (purchase.lotId) {
-      await tx.lot.delete({
-        where: { id: purchase.lotId }
-      });
-    }
+  // 3. Delete the purchase
+  await supabaseAdmin.from("purchases").delete().eq("id", id);
 
-    return result;
-  });
+  // 4. Delete the lot
+  if (purchase.lot_id) {
+    await supabaseAdmin.from("lots").delete().eq("id", purchase.lot_id);
+  }
 }

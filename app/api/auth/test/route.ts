@@ -1,22 +1,27 @@
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import { supabaseAdmin } from "@/lib/supabaseClient";
 
 export async function GET() {
   try {
-    const users = await prisma.user.findMany();
-    const admin = await prisma.user.findUnique({
-      where: { email: "admin@gems.com" },
-    });
+    const { data: users, error } = await supabaseAdmin
+      .from("users")
+      .select("id, email, role");
+
+    if (error) throw error;
+
+    const { data: admin } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("email", "admin@gems.com")
+      .maybeSingle();
 
     const results = {
-      usersCount: users.length,
-      users: users.map(u => ({ email: u.email, id: u.id, role: u.role })),
+      usersCount: users?.length || 0,
+      users: (users || []).map((u) => ({ email: u.email, id: u.id, role: u.role })),
       adminExists: !!admin,
       passwordValid: admin ? await bcrypt.compare("admin123", admin.password) : false,
-      databaseUrlLength: process.env.DATABASE_URL?.length,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     };
 
     return NextResponse.json(results);

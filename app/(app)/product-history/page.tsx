@@ -1,38 +1,72 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { History, Search, Loader2, Wrench, TrendingUp, GitBranch, DollarSign, PackageOpen, ArrowDownToLine, ArrowUpFromLine, RefreshCcw, X } from "lucide-react";
-import { formatINR, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
+import {
+  ArrowLeft, Edit, Save, Trash2,
+  Loader2, AlertCircle, CheckCircle2,
+  Calendar, User, Scale, Layers, Gem,
+  DollarSign, AlertTriangle, Package, History, Search
+} from "lucide-react";
+import { formatINR, formatDate, getStatusLabel, getStatusColor, getCategoryLabel } from "@/lib/utils";
 
 export default function ProductHistoryPage() {
+  // ── List view state ──────────────────────────────────────────
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(true);
   const [data, setData] = useState<any>(null);
-  const [error, setError] = useState("");
+  const [listError, setListError] = useState("");
 
-  useEffect(() => {
-    fetchHistory("");
-  }, []);
+  // ── Detail view state ────────────────────────────────────────
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  async function fetchHistory(query: string) {
-    setError("");
-    setLoading(true);
+  const [form, setForm] = useState({
+    lotNumber: "", itemName: "", category: "ROUGH",
+    supplierName: "", created_at: "",
+  });
+
+  // ── Fetch ────────────────────────────────────────────────────
+  useEffect(() => { fetchHistory(""); }, []);
+
+  async function fetchHistory(query: string, exact = false) {
+    setListError("");
+    setListLoading(true);
+    setIsEditMode(false);
+    setDetailError("");
+    setSuccess("");
     try {
-      const qs = query.trim() ? `?search=${encodeURIComponent(query.trim())}` : "";
+      const p = new URLSearchParams();
+      if (query.trim()) p.set("search", query.trim());
+      if (exact) p.set("exact", "true");
+      const qs = p.toString() ? `?${p.toString()}` : "";
+      
       const r = await fetch(`/api/product-history${qs}`);
       if (r.ok) {
         const result = await r.json();
         setData(result);
+        if (result?.lot) {
+          const l = result.lot;
+          setForm({
+            lotNumber: l.lotNo || "",
+            itemName: l.itemName || "",
+            category: l.category || "ROUGH",
+            supplierName: l.supplierName || "",
+            created_at: l.created_at || "",
+          });
+        }
       } else {
         const d = await r.json();
-        setError(d.error || "Not found");
+        setListError(d.error || "Not found");
         setData(null);
       }
-    } catch (err) {
-      setError("Failed to fetch product history");
+    } catch {
+      setListError("Failed to fetch history");
       setData(null);
     } finally {
-      setLoading(false);
+      setListLoading(false);
     }
   }
 
@@ -41,360 +75,449 @@ export default function ProductHistoryPage() {
     fetchHistory(search);
   }
 
+  async function handleSearchInput(value: string) {
+    setSearch(value);
+    if (value === "") fetchHistory("");
+  }
+
+  // ── Auto-search (live filtering) ─────────────────────────────
+  useEffect(() => {
+    if (!search.trim()) return; // handled instantly by handleSearchInput
+    const timer = setTimeout(() => {
+      fetchHistory(search);
+    }, 400); // 400ms debounce
+    return () => clearTimeout(timer);
+  }, [search]);
+
   function handleClear() {
     setSearch("");
+    setData(null);
+    setListError("");
     fetchHistory("");
+  }
+
+  // ── Save (PATCH lot) ─────────────────────────────────────────
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setDetailError(""); setSaving(true);
+    try {
+      const r = await fetch(`/api/lots/${data.lot.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lotNumber: form.lotNumber,
+          itemName: form.itemName,
+          category: form.category,
+          supplierName: form.supplierName,
+        }),
+      });
+      if (!r.ok) {
+        const d = await r.json();
+        throw new Error(d.error || "Failed to update");
+      }
+      setSuccess("Record updated successfully!");
+      setIsEditMode(false);
+      fetchHistory(form.lotNumber);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e: any) {
+      setDetailError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Delete ───────────────────────────────────────────────────
+  async function handleDelete() {
+    if (!confirm("Delete this product record? This cannot be undone.")) return;
+    setDeleting(true);
+    try {
+      const r = await fetch(`/api/lots/${data.lot.id}`, { method: "DELETE" });
+      if (!r.ok) throw new Error("Failed to delete");
+      handleClear();
+    } catch (e: any) {
+      setDetailError(e.message);
+      setDeleting(false);
+    }
   }
 
   const lot = data?.lot;
   const metrics = data?.metrics;
+  const isDetail = data && data.type !== "all" && lot && metrics;
+  const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   return (
     <div className="container-fluid p-0">
-      {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <History className="w-5 h-5 text-white mb-1" /> Product History (Sum Up)
-          </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            Full lifecycle view from Purchase to Sales
-          </p>
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className="card mb-3">
-        <div className="card-body p-3">
-          <form onSubmit={handleSearch} className="row g-3 items-end">
-            <div className="col-12 col-md-auto mb-1">
-              <label className="form-label mb-1">Enter Lot. No or Sub Lot No.</label>
-              <div className="input-group">
-                <span className="input-group-text"><Search className="w-4 h-4" /></span>
+      {/* ─────────────── LIST VIEW ─────────────── */}
+      {!isDetail && (
+        <div className="px-4 pt-4">
+          <div className="mb-4">
+            <h1 className="h3 text-white fw-bold d-flex align-items-center gap-2 mb-1">
+              <History size={24} /> Inventory Lifecycle
+            </h1>
+            <p className="text-white text-opacity-75 small m-0">
+              Detailed history and flow tracking for all product lots
+            </p>
+          </div>
+
+          <form onSubmit={handleSearch} className="mb-4">
+            <div className="d-flex align-items-center gap-3">
+              {/* Input pill */}
+              <div
+                className="flex-grow-1 d-flex align-items-center bg-white rounded-3 shadow-sm gap-2 border"
+                style={{ padding: "10px 16px" }}
+              >
+                <Search size={18} className="text-muted flex-shrink-0" />
                 <input
+                  type="text"
+                  name="lot-search"
+                  autoComplete="off"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="e.g. L001 or L001-S1"
-                  className="form-control"
+                  onChange={e => handleSearchInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); fetchHistory(search); } }}
+                  placeholder="Search by Lot #, Item Name or Supplier…"
+                  className="flex-grow-1 border-0 bg-transparent p-0"
+                  style={{ outline: "none", fontSize: "0.95rem" }}
                 />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="btn p-0 border-0 bg-transparent text-muted d-flex align-items-center"
+                    style={{ lineHeight: 1, fontSize: "1.1rem" }}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
-            </div>
-            <div className="col-12 col-md-auto d-flex gap-2">
+              {/* Search button */}
               <button
                 type="submit"
-                disabled={loading}
-                className="btn btn-primary d-flex align-items-center gap-2"
+                disabled={listLoading}
+                className="btn btn-primary px-4 fw-semibold rounded-3 flex-shrink-0 d-flex align-items-center gap-2"
+                style={{ padding: "10px 20px" }}
               >
-                {loading && <Loader2 className="w-4 h-4 animate-spin d-inline" />}
+                {listLoading
+                  ? <Loader2 size={16} className="animate-spin" />
+                  : <Search size={16} />}
                 Search
               </button>
-              {search && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  disabled={loading}
-                  className="btn btn-light"
-                >
-                  Clear
+            </div>
+
+            {/* Error feedback */}
+            {listError && !listLoading && (
+              <div className="d-flex align-items-center gap-2 mt-2 ps-1">
+                <AlertCircle size={14} className="text-danger" />
+                <span className="text-danger small">{listError}</span>
+              </div>
+            )}
+          </form>
+
+          <div className="card shadow-sm border-0 overflow-hidden">
+            <div className="table-responsive">
+              <table className="table table-hover align-middle my-0 bg-white">
+                <thead className="bg-light border-bottom">
+                  <tr className="text-muted small text-uppercase">
+                    <th className="ps-4 py-3 fw-semibold">Lot No</th>
+                    <th className="py-3 fw-semibold">Date</th>
+                    <th className="py-3 fw-semibold">Supplier</th>
+                    <th className="py-3 fw-semibold">Type</th>
+                    <th className="text-end pe-4 py-3 fw-semibold">Item Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listLoading ? (
+                    <tr><td colSpan={5} className="text-center py-5">
+                      <Loader2 size={32} className="animate-spin text-primary opacity-30 mx-auto d-block" />
+                    </td></tr>
+                  ) : listError ? (
+                    <tr><td colSpan={5} className="text-center py-5 text-danger">{listError}</td></tr>
+                  ) : !data?.lots || data.lots.length === 0 ? (
+                    <tr><td colSpan={5} className="text-center py-5 text-muted fst-italic">No inventory items found.</td></tr>
+                  ) : data.lots.map((l: any) => (
+                    <tr key={l.id}>
+                      <td className="ps-4 py-3">
+                        <button
+                          onClick={() => { setSearch(l.lotNo); fetchHistory(l.lotNo, true); }}
+                          className="btn btn-link p-0 text-decoration-none font-monospace fw-bold shadow-none"
+                        >
+                          {l.lotNo}
+                        </button>
+                      </td>
+                      <td className="text-muted small">{formatDate(l.date)}</td>
+                      <td className="text-muted">{l.supplierName || "—"}</td>
+                      <td>
+                        <span className={`badge px-2 py-1 small fw-semibold ${
+                          l.category === "ROUGH"       ? "bg-primary bg-opacity-10 text-primary" :
+                          l.category === "READY_GOODS" ? "bg-success bg-opacity-10 text-success" :
+                          "bg-warning bg-opacity-10 text-warning"
+                        }`}>
+                          {getCategoryLabel(l.category)}
+                        </span>
+                      </td>
+                      <td className="text-end pe-4 fw-semibold">{l.itemName || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────── DETAIL VIEW ─────────────── */}
+      {isDetail && (
+        <>
+          {/* Header — no extra wrapper, matches rough-gems/[id] exactly */}
+          <div className="d-flex align-items-center justify-content-between mb-4">
+            <div className="d-flex align-items-center gap-3">
+              <button onClick={handleClear} className="btn btn-light btn-sm rounded-circle p-2 shadow-sm">
+                <ArrowLeft size={16} />
+              </button>
+              <div>
+                <h1 className="h3 mb-0 text-white fw-bold d-flex align-items-center gap-2">
+                  <Gem size={20} className="text-primary" />
+                  <span className="text-primary font-monospace">{lot.lotNo}</span>
+                </h1>
+                <p className="text-white text-opacity-50 small mb-0">
+                  {form.itemName || "Product"} · {getCategoryLabel(form.category)}
+                </p>
+              </div>
+            </div>
+
+            <div className="d-flex gap-2">
+              {!isEditMode ? (
+                <>
+                  <button onClick={() => setIsEditMode(true)} className="btn btn-primary shadow-sm d-flex align-items-center gap-2 fw-semibold">
+                    <Edit size={16} /> Edit Record
+                  </button>
+                  <button onClick={handleDelete} disabled={deleting} className="btn btn-danger shadow-sm d-flex align-items-center gap-2 fw-semibold">
+                    {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => { setIsEditMode(false); fetchHistory(search); setDetailError(""); }} className="btn btn-light shadow-sm">
+                  Cancel
                 </button>
               )}
             </div>
-            {error && <div className="col-12"><p className="text-danger small mt-2 mb-0">⚠ {error}</p></div>}
-          </form>
-        </div>
-      </div>
-
-      {/* Results */}
-      {data?.type === "all" && data.lots && (
-        <div className="card flex-fill w-100 mb-3">
-          <div className="card-header d-flex align-items-center justify-content-between">
-             <h5 className="card-title mb-0">All Products (Lots) Summary</h5>
-             <span className="small text-muted">{data.lots.length} records</span>
-          </div>
-          <div className="table-responsive">
-            <table className="table table-hover my-0">
-              <thead>
-                <tr>
-                  <th>Lot No</th>
-                  <th>Item / Category</th>
-                  <th>Total Cost</th>
-                  <th>Total Revenue</th>
-                  <th>Net Profit</th>
-                  <th>Avail. Balance</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.lots.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-5 text-muted">No lots found.</td></tr>
-                ) : data.lots.map((l: any) => (
-                  <tr key={l.id}>
-                    <td><span className="font-monospace text-primary fw-medium">{l.lotNo}</span></td>
-                    <td>
-                      <div className="fw-medium small mb-0">{l.itemName || "—"}</div>
-                      <div className="small text-muted text-uppercase mb-0">{l.category}</div>
-                    </td>
-                    <td>{formatINR(l.totalProductCost)}</td>
-                    <td>{formatINR(l.totalRevenue)}</td>
-                    <td className={`fw-bold ${l.netProfit >= 0 ? "text-success" : "text-danger"}`}>
-                      {formatINR(l.netProfit)}
-                    </td>
-                    <td><span className="fw-medium">{l.currentAvailableWeight}</span> <span className="small text-muted">GM</span></td>
-                    <td>
-                      <button 
-                        onClick={() => { setSearch(l.lotNo); fetchHistory(l.lotNo); }} 
-                        className="btn btn-sm btn-light"
-                      >
-                        <History className="w-4 h-4 text-muted d-inline me-1 mb-1" />
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {data && data.type !== "all" && lot && metrics && (
-        <div className="row mb-3">
-          {/* Top Level Metrics Cards */}
-          <div className="col-12 col-sm-6 col-xxl-3 d-flex">
-            <div className="card flex-fill border-start border-4 border-warning">
-              <div className="card-body">
-                <div className="row">
-                  <div className="col mt-0">
-                    <h5 className="card-title text-muted text-uppercase mb-2">Total Product Cost</h5>
-                  </div>
-                </div>
-                <h1 className="mt-1 mb-2 text-dark font-monospace">{formatINR(metrics.totalProductCost)}</h1>
-                <div className="small text-muted mb-0">Purchase: {formatINR(metrics.totalPurchaseCost)} | Mfg: {formatINR(metrics.totalManufacturingCost)}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="col-12 col-sm-6 col-xxl-3 d-flex">
-            <div className="card flex-fill border-start border-4 border-primary">
-              <div className="card-body">
-                <div className="row">
-                  <div className="col mt-0">
-                    <h5 className="card-title text-muted text-uppercase mb-2">Total Revenue</h5>
-                  </div>
-                </div>
-                <h1 className="mt-1 mb-2 text-dark font-monospace">{formatINR(metrics.totalRevenue)}</h1>
-                <div className="small text-muted mb-0">From {lot.subLots.reduce((acc: number, sl: any) => acc + sl.sales.length, 0)} Sale(s)</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="col-12 col-sm-6 col-xxl-3 d-flex">
-            <div className="card flex-fill border-start border-4 border-success">
-              <div className="card-body">
-                <div className="row">
-                  <div className="col mt-0">
-                    <h5 className="card-title text-muted text-uppercase mb-2">Net Profit</h5>
-                  </div>
-                </div>
-                <h1 className={`mt-1 mb-2 font-monospace fw-bold ${metrics.netProfit >= 0 ? "text-success" : "text-danger"}`}>
-                  {formatINR(metrics.netProfit)}
-                </h1>
-                <div className="small text-muted mb-0">Revenue - Total Cost</div>
-              </div>
-            </div>
           </div>
 
-          <div className="col-12 col-sm-6 col-xxl-3 d-flex">
-            <div className="card flex-fill border-start border-4 border-info relative overflow-hidden">
-              <PackageOpen className="w-16 h-16 position-absolute end-0 bottom-0 text-info opacity-10" />
-              <div className="card-body">
-                <div className="row">
-                  <div className="col mt-0">
-                    <h5 className="card-title text-muted text-uppercase mb-2">Available Balance</h5>
-                  </div>
-                </div>
-                <h1 className="mt-1 mb-2 text-dark font-monospace">{metrics.currentAvailableWeight} <span className="fs-6 text-muted font-sans">GM</span></h1>
-                <div className="small text-muted mb-0">In Stock or Ready</div>
-              </div>
+          {/* Alerts */}
+          {detailError && (
+            <div className="alert alert-danger p-3 d-flex align-items-center mb-4 border-0 shadow-sm">
+              <AlertCircle size={20} className="me-2 flex-shrink-0" /> {detailError}
             </div>
-          </div>
-        </div>
-      )}
+          )}
+          {success && (
+            <div className="alert alert-success p-3 d-flex align-items-center mb-4 border-0 shadow-sm">
+              <CheckCircle2 size={20} className="me-2 flex-shrink-0" /> {success}
+            </div>
+          )}
 
-      {data && data.type !== "all" && lot && metrics && (
-        <div className="row">
-            
-            {/* Left Column: Purchase & Manufacturing */}
-            <div className="space-y-6">
-              
-              {/* Purchase Details */}
-              <div className="glass-card overflow-hidden">
-                <div className="px-5 py-4 border-b border-border bg-secondary/30 flex items-center justify-between">
-                  <h3 className="font-semibold flex items-center gap-2 text-primary">
-                    <ArrowDownToLine className="w-4 h-4" /> Purchase Details
-                  </h3>
-                   <span className="text-xs bg-primary/20 text-primary px-2.5 py-1 rounded-full font-medium">{lot.category}</span>
-                </div>
-                <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">Lot Number</span>
-                      <p className="font-mono text-lg font-bold">{lot.lotNo}</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold">Supplier Name</span>
-                      <p className="font-medium text-sm mt-1">{lot.supplierName || "—"}</p>
-                    </div>
+          <form id="editForm" onSubmit={handleSave}>
+            <div className="row g-4">
+              {/* ── LEFT: Core Details ── */}
+              <div className="col-12 col-xl-8">
+
+                {/* Basic Information */}
+                <div className="card shadow-sm border-0 mb-4">
+                  <div className="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                    <Package size={20} className="text-primary me-2" />
+                    <h5 className="card-title fw-bold mb-0">Basic Information</h5>
                   </div>
-                  
-                  {lot.purchases.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">No purchase records found.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {lot.purchases.map((p: any) => (
-                        <div key={p.id} className="bg-secondary/20 p-3 rounded-lg border border-border">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-xs text-muted-foreground">{formatDate(p.date)}</span>
-                            <span className="font-mono text-sm font-bold">{formatINR(p.totalCost)}</span>
-                          </div>
-                           <div className="grid grid-cols-3 gap-2 text-xs">
-                             <div><span className="text-muted-foreground">Gross:</span> <span className="font-medium">{p.grossWeight} {p.weightUnit}</span></div>
-                             <div><span className="text-muted-foreground">Less:</span> <span className="font-medium">{p.lessWeight} {p.weightUnit}</span></div>
-                             <div><span className="text-muted-foreground">Net:</span> <span className="font-medium">{p.netWeight} {p.weightUnit}</span></div>
-                           </div>
-                           {(p.pieces || p.size || p.shape) && (
-                              <div className="mt-2 pt-2 border-t border-border/50 text-[10px] text-muted-foreground flex gap-3">
-                                {p.pieces && <span>Pieces: {p.pieces}</span>}
-                                {p.shape && <span>Shape: {p.shape}</span>}
-                                {p.size && <span>Size: {p.size}</span>}
-                              </div>
-                           )}
+                  <div className="card-body p-4">
+                    <div className="row g-3">
+                      <Field label="Lot No" className="col-md-4">
+                        <div className="p-2 bg-light rounded font-monospace fw-bold text-primary">{lot.lotNo}</div>
+                      </Field>
+                      <Field label="Date" className="col-md-4">
+                        <div className="p-2 bg-light rounded d-flex align-items-center">
+                          <Calendar size={16} className="me-2 text-muted" />
+                          {formatDate(form.created_at)}
                         </div>
-                      ))}
+                      </Field>
+                      <Field label="Supplier" className="col-md-4">
+                        {isEditMode
+                          ? <input value={form.supplierName} onChange={e => f("supplierName", e.target.value)} className="form-control" />
+                          : <div className="p-2 bg-light rounded d-flex align-items-center"><User size={16} className="me-2 text-muted" />{form.supplierName || "—"}</div>
+                        }
+                      </Field>
+                      <Field label="Item Name" className="col-md-6">
+                        {isEditMode
+                          ? <input value={form.itemName} onChange={e => f("itemName", e.target.value)} className="form-control" />
+                          : <div className="p-2 bg-light rounded">{form.itemName || "—"}</div>
+                        }
+                      </Field>
+                      <Field label="Purchase Price (₹)" className="col-md-6">
+                        <div className="p-2 bg-light rounded fw-bold text-warning">
+                          {lot.purchases?.[0]?.purchasePrice ? formatINR(lot.purchases[0].purchasePrice) : formatINR(metrics.totalProductCost)}
+                        </div>
+                      </Field>
                     </div>
-                  )}
-                </div>
-              </div>
-
-               {/* Manufacturing Details */}
-               <div className="glass-card overflow-hidden">
-                <div className="px-5 py-4 border-b border-border bg-amber-500/10 flex items-center gap-2">
-                  <Wrench className="w-4 h-4 text-amber-500" />
-                  <h3 className="font-semibold text-amber-500">Manufacturing Timeline</h3>
-                </div>
-                <div className="p-5">
-                   {lot.subLots.flatMap((sl: any) => sl.manufacturing).length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">No manufacturing records found.</p>
-                   ) : (
-                     <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-amber-500/20 before:to-transparent">
-                       {lot.subLots.flatMap((sl: any) => sl.manufacturing.map((m: any) => ({...m, subLotNo: sl.subLotNo}))).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((m: any) => (
-                          <div key={m.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                             <div className="flex items-center justify-center w-5 h-5 rounded-full border-2 border-amber-500 bg-background shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2" />
-                             <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] bg-secondary/20 p-3 rounded-xl border border-border shadow-sm">
-                               <div className="flex justify-between items-center mb-1">
-                                 <span className="text-[10px] font-bold text-amber-500">{m.entryType}</span>
-                                 <span className="text-[10px] text-muted-foreground">{formatDate(m.date)}</span>
-                               </div>
-                               <p className="text-xs font-medium mb-1">Sub Lot: <span className="font-mono text-primary">{m.subLotNo}</span></p>
-                               <div className="text-[10px] text-muted-foreground grid grid-cols-2 gap-y-1">
-                                  <span>Weight: {m.weight} {m.weightUnit}</span>
-                                  <span>To: {m.issuedTo || "—"}</span>
-                                  <span className="col-span-2 text-amber-500/80 font-medium">Cost: +{formatINR(m.totalManufacturingCost)}</span>
-                               </div>
-                             </div>
-                          </div>
-                       ))}
-                     </div>
-                   )}
-                </div>
-              </div>
-
-            </div>
-
-             {/* Right Column: Splits & Sales */}
-             <div className="space-y-6">
-                
-                {/* Sub Lot Tree */}
-                <div className="glass-card overflow-hidden">
-                  <div className="px-5 py-4 border-b border-border bg-violet-500/10 flex items-center justify-between">
-                    <h3 className="font-semibold flex items-center gap-2 text-violet-400">
-                      <GitBranch className="w-4 h-4" /> Sub-Lot Stock Directory
-                    </h3>
                   </div>
-                  <div className="p-5">
-                    {lot.subLots.length === 0 ? (
-                       <p className="text-sm text-muted-foreground italic">No sub-lots created yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {lot.subLots.map((sl: any) => (
-                          <div key={sl.id} className="bg-secondary/30 p-3 rounded-lg border border-border flex items-center justify-between group hover:bg-secondary/50 transition-colors">
-                             <div className="flex items-center gap-3">
-                               <PackageOpen className="w-5 h-5 text-violet-400 opacity-50 flex-shrink-0" />
-                               <div>
-                                 <p className="font-mono font-bold text-sm">{sl.subLotNo}</p>
-                                 <p className="text-[10px] text-muted-foreground">{sl.weight} {sl.weightUnit} · {sl.pieces || 0} Pieces</p>
-                               </div>
-                             </div>
-                             <div className="text-right flex flex-col items-end gap-1">
-                                <span className={`status-badge !text-[10px] !py-0.5 ${getStatusColor(sl.status)}`}>{getStatusLabel(sl.status)}</span>
-                                {sl.parentSubLotId && (
-                                   <span className="text-[9px] text-muted-foreground flex items-center gap-1">
-                                     <GitBranch className="w-2.5 h-2.5" /> Split from parent
-                                   </span>
-                                )}
-                             </div>
-                          </div>
-                        ))}
+                </div>
+
+                {/* Weight Details */}
+                <div className="card shadow-sm border-0 mb-4">
+                  <div className="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                    <Scale size={20} className="text-primary me-2" />
+                    <h5 className="card-title fw-bold mb-0">Weight Details</h5>
+                  </div>
+                  <div className="card-body p-4">
+                    <div className="row g-3">
+                      <Field label="Gross Weight" className="col-md-4">
+                        <div className="p-2 bg-light rounded fw-bold">
+                          {lot.purchases?.[0]?.grossWeight ?? "—"} {lot.purchases?.[0]?.weightUnit || "G"}
+                        </div>
+                      </Field>
+                      <Field label="Less Weight" className="col-md-4">
+                        <div className="p-2 bg-light rounded">
+                          {lot.purchases?.[0]?.lessWeight ?? "0"} {lot.purchases?.[0]?.weightUnit || "G"}
+                        </div>
+                      </Field>
+                      <Field label="Net Weight" className="col-md-4">
+                        <div className="p-2 bg-primary bg-opacity-10 rounded fw-bold text-primary">
+                          {((lot.purchases?.[0]?.grossWeight || 0) - (lot.purchases?.[0]?.lessWeight || 0)).toFixed(3)} {lot.purchases?.[0]?.weightUnit || "G"}
+                        </div>
+                      </Field>
+
+                      <div className="col-12"><hr className="text-secondary opacity-25 my-1" /></div>
+                      <p className="small fw-bold text-success text-uppercase mb-0 px-3">Selection</p>
+                      <Field label="Selection Weight" className="col-md-4">
+                        <div className="p-2 bg-success bg-opacity-10 text-success rounded fw-bold">
+                          {metrics.currentAvailableWeight?.toFixed(3) || "—"} G
+                        </div>
+                      </Field>
+                      <Field label="Manufacturing Steps" className="col-md-4">
+                        <div className="p-2 bg-light rounded">{lot.manufacturing?.length ?? "0"}</div>
+                      </Field>
+                      <Field label="Sales Count" className="col-md-4">
+                        <div className="p-2 bg-light rounded">{lot.sales?.length ?? "0"}</div>
+                      </Field>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Physical Specs / Category */}
+                <div className="card shadow-sm border-0 mb-4">
+                  <div className="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                    <Layers size={20} className="text-primary me-2" />
+                    <h5 className="card-title fw-bold mb-0">Classification & Specs</h5>
+                  </div>
+                  <div className="card-body p-4">
+                    <div className="row g-3">
+                      <Field label="Category" className="col-md-4">
+                        {isEditMode
+                          ? <select value={form.category} onChange={e => f("category", e.target.value)} className="form-select">
+                              <option value="ROUGH">Rough</option>
+                              <option value="READY_GOODS">Ready Goods</option>
+                              <option value="BY_ORDER">By Order</option>
+                            </select>
+                          : <div className="p-2 bg-light rounded">{getCategoryLabel(form.category)}</div>
+                        }
+                      </Field>
+                      <Field label="Total Revenue" className="col-md-4">
+                        <div className="p-2 bg-light rounded fw-bold text-success">{formatINR(metrics.totalRevenue)}</div>
+                      </Field>
+                      <Field label="Net Profit / Loss" className="col-md-4">
+                        <div className={`p-2 bg-light rounded fw-bold ${metrics.netProfit >= 0 ? "text-success" : "text-danger"}`}>
+                          {formatINR(metrics.netProfit)}
+                        </div>
+                      </Field>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* ── RIGHT: Status + Lifecycle ── */}
+              <div className="col-12 col-xl-4">
+
+                {/* Status Card */}
+                <div className="card shadow-sm border-0 mb-4">
+                  <div className="card-body p-4 text-center">
+                    <Gem size={32} className="text-primary mx-auto mb-2" />
+                    <div className="mb-3">
+                      <span className="text-muted small">Lot Status</span>
+                      <div className="mt-1">
+                        <span className={`badge px-3 py-2 fs-6 bg-${getStatusColor(lot.sales?.length > 0 ? "SOLD" : "IN_STOCK")} text-white`}>
+                          {lot.sales?.length > 0 ? "Sold" : "In Process"}
+                        </span>
+                      </div>
+                    </div>
+                    {lot.lotNo && (
+                      <div className="p-2 bg-light rounded mt-2">
+                        <span className="small text-muted">Lot No</span>
+                        <div className="font-monospace fw-bold text-primary">{lot.lotNo}</div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Sales & Returns */}
-                <div className="glass-card overflow-hidden">
-                  <div className="px-5 py-4 border-b border-border bg-blue-500/10 flex items-center justify-between">
-                    <h3 className="font-semibold flex items-center gap-2 text-blue-400">
-                      <ArrowUpFromLine className="w-4 h-4" /> Sales & Returns
-                    </h3>
+                {/* Rejection / Lifecycle Card */}
+                <div className="card shadow-sm border-0 border-danger border-opacity-25">
+                  <div className="card-header bg-danger bg-opacity-10 border-bottom border-danger border-opacity-25 py-3 d-flex align-items-center">
+                    <AlertTriangle size={20} className="text-danger me-2" />
+                    <h5 className="card-title fw-bold mb-0 text-danger">Rejection Info</h5>
                   </div>
-                  <div className="p-5">
-                     {lot.subLots.flatMap((sl: any) => sl.sales).length === 0 ? (
-                        <p className="text-sm text-muted-foreground italic">No sales records found.</p>
-                     ) : (
-                       <div className="space-y-3">
-                         {lot.subLots.flatMap((sl: any) => sl.sales.map((s: any) => ({...s, subLotNo: sl.subLotNo}))).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((s: any) => (
-                            <div key={s.id} className="bg-secondary/20 p-3 rounded-lg border border-border border-l-2 border-l-blue-500">
-                               <div className="flex justify-between items-start mb-2">
-                                  <div>
-                                    <span className="text-[10px] text-muted-foreground uppercase font-bold text-blue-400 mr-2">SALE</span>
-                                    <span className="text-xs text-muted-foreground">{formatDate(s.date)}</span>
-                                  </div>
-                                 <span className="font-mono text-sm font-bold text-emerald-400">+{formatINR(s.finalBillAmount)}</span>
-                               </div>
-                               <p className="text-xs font-medium mb-1 truncate">
-                                 Sub Lot: <span className="font-mono">{s.subLotNo}</span> · Sold to: {s.soldTo || "—"}
-                               </p>
-                               
-                               <div className="text-[10px] text-muted-foreground flex gap-3 mt-2 pt-2 border-t border-border/50">
-                                 {s.weight && <span>Weight: {s.weight} {s.weightUnit}</span>}
-                                 {s.discount > 0 && <span className="text-amber-500/80">Discount: {formatINR(s.discount)}</span>}
-                               </div>
+                  <div className="card-body p-4">
+                    <div className="row g-3">
+                      <Field label="Rejection Weight" className="col-12">
+                        <div className="p-2 bg-light rounded text-danger fw-bold">
+                          {lot.purchases?.[0]?.rejectionWeight || "0"} {lot.purchases?.[0]?.weightUnit || "G"}
+                        </div>
+                      </Field>
+                      <Field label="Rejection Pieces" className="col-6">
+                        <div className="p-2 bg-light rounded">{lot.purchases?.[0]?.rejectionPieces || "—"}</div>
+                      </Field>
+                      <Field label="Rejection Lines" className="col-6">
+                        <div className="p-2 bg-light rounded">{lot.purchases?.[0]?.rejectionLines || "—"}</div>
+                      </Field>
+                      <Field label="Return Date" className="col-6">
+                        <div className="p-2 bg-light rounded">
+                          {lot.purchases?.[0]?.rejectionDate ? formatDate(lot.purchases[0].rejectionDate) : "—"}
+                        </div>
+                      </Field>
+                      <Field label="Rejection Status" className="col-6">
+                        <span className={`badge px-3 py-2 d-inline-block mt-1 ${
+                          lot.purchases?.[0]?.rejectionStatus === "RETURNED"   ? "bg-info text-white"
+                          : lot.purchases?.[0]?.rejectionStatus === "RESELLABLE" ? "bg-success text-white"
+                          : lot.purchases?.[0]?.rejectionStatus === "CLOSED"     ? "bg-secondary text-white"
+                          : "bg-warning text-dark"
+                        }`}>
+                          {lot.purchases?.[0]?.rejectionStatus || "PENDING"}
+                        </span>
+                      </Field>
+                    </div>
+                  </div>
+                </div>
 
-                               {s.status === "RETURNED" && (
-                                 <div className="mt-2 bg-destructive/10 border border-destructive/20 rounded p-2 flex items-center gap-2 text-xs text-destructive">
-                                   <RefreshCcw className="w-3 h-3" />
-                                   Customer returned {s.returnedWeight} {s.weightUnit} on {formatDate(s.returnDate)}
-                                 </div>
-                               )}
-                              </div>
-                           ))}
-                         </div>
-                       )}
-                   </div>
-                 </div>
-               </div>
+              </div>
             </div>
-        )}
+
+            {/* Save Footer */}
+            {isEditMode && (
+              <div className="d-flex justify-content-end mt-4">
+                <button type="submit" disabled={saving} className="btn btn-primary shadow-sm px-4 d-flex align-items-center gap-2 fw-semibold">
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  {saving ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+            )}
+          </form>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={className}>
+      <label className="form-label mb-2 text-muted fw-semibold small">{label}</label>
+      {children}
     </div>
   );
 }

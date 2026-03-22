@@ -1,122 +1,121 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
-import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/auth/getContext";
+import { supabaseAdmin } from "@/lib/supabaseClient";
 
 export async function GET(req: NextRequest) {
   try {
     const { organizationId } = await getTenantContext();
-
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
+    const excludeCategory = searchParams.get("excludeCategory") || "";
     const status = searchParams.get("status") || "";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    // Build where clause — query Purchase table directly so we always
-    // show what was actually purchased.
-    const purchaseWhere: any = { organizationId };
+    let query = supabaseAdmin
+      .from("purchases")
+      .select(
+        `*, lot:lots(
+          *,
+          product:products(*),
+          manufacturing(*),
+          sales(*)
+        )`
+      )
+      .eq("organization_id", organizationId)
+      .order("date", { ascending: false });
 
-    if (search) {
-      purchaseWhere.OR = [
-        { lot: { lotNumber: { contains: search, mode: "insensitive" } } },
-        { itemName: { contains: search, mode: "insensitive" } },
-        { supplier: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    // category filter: check the lot's category field
     if (category) {
-      purchaseWhere.lot = { ...purchaseWhere.lot, category };
+      query = query.eq("lot.category", category);
     }
 
-    const purchases = await (prisma as any).purchase.findMany({
-      where: purchaseWhere,
-      include: {
-        lot: {
-          include: {
-            product: true,
-            manufacturing: { orderBy: { date: "desc" }, take: 1 },
-            sales: { orderBy: { date: "desc" }, take: 1 },
-          },
-        },
-      },
-      orderBy: { date: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const { data: purchases, error } = await query;
+    if (error) throw new Error(error.message);
 
-    const total = await (prisma as any).purchase.count({ where: purchaseWhere });
-
-    // Map Purchase → the shape the frontend (SubLot type) expects
-    const finishedGoods = purchases
+    let mapped = (purchases || [])
       .filter((p: any) => {
-        // Apply status filter against the lot status
+        if (category && (!p.lot || p.lot.category !== category)) return false;
+        if (excludeCategory && p.lot?.category === excludeCategory) return false;
         if (status) return (p.lot?.status || "IN_STOCK") === status;
         return true;
-      })
-      .map((p: any) => {
-        const lot = p.lot;
-        const netWt = (p.grossWeight || 0) - (p.lessWeight || 0);
-        const rejWt = p.rejectionWeight || 0;
-        // Selection weight = net - rejection
-        const selectionWeight = Math.max(0, netWt - rejWt);
+      });
 
+    if (search) {
+      const s = search.toLowerCase();
+      mapped = mapped.filter((p: any) => {
+        const lotNo = p.lot?.lot_number?.toLowerCase() || "";
+        const supplier = p.supplier?.toLowerCase() || p.lot?.supplier_name?.toLowerCase() || "";
+        const item = p.item_name?.toLowerCase() || p.lot?.item_name?.toLowerCase() || "";
+        const hasWorker = p.lot?.manufacturing?.some((m: any) => m.worker_name?.toLowerCase().includes(s));
+        const hasBuyer = p.lot?.sales?.some((sl: any) => sl.buyer_name?.toLowerCase().includes(s));
+        
+        return lotNo.includes(s) || supplier.includes(s) || item.includes(s) || hasWorker || hasBuyer;
+      });
+    }
+
+    const total = mapped.length;
+    mapped = mapped.slice((page - 1) * limit, page * limit).map((p: any) => {
+        const lot = p.lot;
+        const netWt = (p.gross_weight || 0) - (p.less_weight || 0);
+        const rejWt = p.rejection_weight || 0;
+        const selectionWeight = Math.max(0, netWt - rejWt);
         return {
           id: p.id,
-          subLotNo: lot?.lotNumber || "—",
+          subLotNo: lot?.lot_number || "—",
           lotId: lot?.id || "",
           status: lot?.status || "IN_STOCK",
-          weight: selectionWeight,        // show Selection weight as "available" weight
-          weightUnit: p.weightUnit || "G",
-          pieces: p.rejectionPieces != null && p.pieces != null
-            ? Math.max(0, p.pieces - p.rejectionPieces)
-            : (p.pieces ?? null),
+          weight: selectionWeight,
+          weightUnit: p.weight_unit || "G",
+          pieces:
+            p.rejection_pieces != null && p.pieces != null
+              ? Math.max(0, p.pieces - p.rejection_pieces)
+              : p.pieces ?? null,
           shape: p.shape,
           size: p.size,
           lines: p.lines,
-          length: p.lineLength,
+          length: p.line_length,
           updatedAt: p.date,
           lot: {
-            lotNumber: lot?.lotNumber || "—",
-            itemName: p.itemName || lot?.itemName || lot?.product?.name || null,
+            lotNumber: lot?.lot_number || "—",
+            itemName: p.item_name || lot?.item_name || lot?.product?.name || null,
             category: lot?.category || lot?.product?.category || "",
-            supplierName: p.supplier || lot?.supplierName || null,
-            grossWeight: p.grossWeight ?? 0,
+            supplierName: p.supplier || lot?.supplier_name || null,
+            grossWeight: p.gross_weight ?? 0,
             netWeight: netWt,
           },
           manufacturing: lot?.manufacturing || [],
           sales: lot?.sales || [],
-          // Extra purchase context
-          purchasePrice: p.purchasePrice,
-          totalCost: p.totalCost,
+          purchasePrice: p.purchase_price,
+          totalCost: p.total_cost,
           purchaseDate: p.date,
-          rejectionWeight: p.rejectionWeight,
-          rejectionPieces: p.rejectionPieces,
-          rejectionStatus: p.rejectionStatus,
+          rejectionWeight: p.rejection_weight,
+          rejectionPieces: p.rejection_pieces,
+          rejectionStatus: p.rejection_status,
         };
       });
 
     return NextResponse.json({
-      subLots: finishedGoods,
-      total,
+      subLots: mapped,
+      total: total || 0,
       page,
       limit,
       summary: {
-        readyCount: finishedGoods.filter((g: any) => g.status === "READY").length,
-        partiallySoldCount: finishedGoods.filter((g: any) => g.status === "PARTIALLY_SOLD").length,
-        inStockCount: finishedGoods.filter((g: any) => g.status === "IN_STOCK").length,
-        totalAvailable: finishedGoods.length,
-        totalWeight: finishedGoods.reduce((acc: number, g: any) => acc + (g.weight || 0), 0),
+        readyCount: mapped.filter((g: any) => g.status === "READY").length,
+        partiallySoldCount: mapped.filter((g: any) => g.status === "PARTIALLY_SOLD").length,
+        inStockCount: mapped.filter((g: any) => g.status === "IN_STOCK").length,
+        totalAvailable: mapped.length,
+        totalWeight: mapped.reduce((acc: number, g: any) => {
+          let w = g.weight || 0;
+          if (g.weightUnit === "KG") w *= 1000;
+          else if (g.weightUnit === "CT") w *= 0.2;
+          return acc + w;
+        }, 0),
       },
     });
   } catch (e: any) {
     console.error("[finished-goods] ERROR:", e);
-    const errorMessage = e?.message || String(e) || "Internal server error";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: e?.message || "Internal server error" }, { status: 500 });
   }
 }

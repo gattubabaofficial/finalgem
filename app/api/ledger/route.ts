@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getTenantContext } from "@/lib/auth/getContext";
+import { supabaseAdmin } from "@/lib/supabaseClient";
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,27 +11,22 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
 
     const { organizationId } = await getTenantContext();
-    const where: any = { organizationId };
 
-    if (productId) where.productId = productId;
-    if (refType) where.transactionType = refType;
+    let query = supabaseAdmin
+      .from("stock_ledgers")
+      .select("*, product:products(*)", { count: "exact" })
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
 
-    const [entries, total] = await Promise.all([
-      prisma.stockLedger.findMany({
-        where,
-        include: {
-          product: true,
-        },
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.stockLedger.count({ where }),
-    ]);
+    if (productId) query = query.eq("product_id", productId);
+    if (refType) query = query.eq("transaction_type", refType);
 
-    return NextResponse.json({ entries, total, page, limit });
-  } catch (e) {
+    const { data: entries, count, error } = await query;
+    if (error) throw new Error(error.message);
+
+    return NextResponse.json({ entries: entries || [], total: count || 0, page, limit });
+  } catch (e: any) {
     return NextResponse.json({ error: "Failed to fetch ledger" }, { status: 500 });
   }
 }
-

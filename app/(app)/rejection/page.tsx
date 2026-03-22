@@ -8,19 +8,21 @@ import Link from "next/link";
 type Tab = "purchase" | "manufacturing" | "sales";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  PENDING: { label: "Pending", color: "bg-orange-500/20 text-orange-400 border-orange-500/30", icon: <Clock className="w-3 h-3" /> },
-  RETURNED: { label: "Returned", color: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30", icon: <RotateCcw className="w-3 h-3" /> },
-  RESELLABLE: { label: "Resellable", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" /> },
-  CLOSED: { label: "Closed", color: "bg-gray-500/20 text-gray-400 border-gray-500/30", icon: <XCircle className="w-3 h-3" /> },
-  REJECTED: { label: "Rejected", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: <XCircle className="w-3 h-3" /> },
-  RETURNED_TO_MANUFACTURER: { label: "Returned to Mfr.", color: "bg-violet-500/20 text-violet-400 border-violet-500/30", icon: <RotateCcw className="w-3 h-3" /> },
-  PARTIALLY_RETURNED: { label: "Partially Returned", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: <RotateCcw className="w-3 h-3" /> },
+  PENDING: { label: "Pending", color: "bg-warning text-dark", icon: <Clock className="w-3 h-3" /> },
+  RETURNED: { label: "Returned", color: "bg-info text-white", icon: <RotateCcw className="w-3 h-3" /> },
+  RESELLABLE: { label: "Resellable", color: "bg-success text-white", icon: <CheckCircle className="w-3 h-3" /> },
+  CLOSED: { label: "Closed", color: "bg-secondary text-white", icon: <XCircle className="w-3 h-3" /> },
+  REJECTED: { label: "Rejected", color: "bg-danger text-white", icon: <XCircle className="w-3 h-3" /> },
+  RETURNED_TO_MANUFACTURER: { label: "Returned to Mfr.", color: "bg-primary text-white", icon: <RotateCcw className="w-3 h-3" /> },
+  PARTIALLY_RETURNED: { label: "Partially Returned", color: "bg-warning text-dark", icon: <RotateCcw className="w-3 h-3" /> },
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] || { label: status, color: "bg-gray-500/20 text-gray-400", icon: null };
+  const cfg = STATUS_CONFIG[status] || { label: status, color: "bg-secondary text-white", icon: null };
+  // Extract only the bg- and text- colors if they are in the config, or use our standard
+  // Actually, I'll just adjust the config to be simpler and use bg- prefix
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}>
+    <span className={`badge ${cfg.color} d-inline-flex align-items-center gap-1`}>
       {cfg.icon}{cfg.label}
     </span>
   );
@@ -184,13 +186,15 @@ function PurchaseTable({ rows }: { rows: any[] }) {
     <table className="table table-hover my-0">
       <thead>
         <tr>
-          <th>Lot No</th><th>Date</th><th>Supplier</th><th>Item</th>
-          <th>Rej. Weight</th><th>Rej. Pieces</th><th>Status</th>
+          <th>Lot No</th>
+          <th>Date</th>
+          <th>Supplier</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr><td colSpan={7} className="text-center py-5 text-muted">No purchase rejections found.</td></tr>
+          <tr><td colSpan={4} className="text-center py-5 text-muted">No purchase rejections found.</td></tr>
         ) : rows.map((p: any) => (
           <tr key={p.id}>
             <td>
@@ -200,9 +204,6 @@ function PurchaseTable({ rows }: { rows: any[] }) {
             </td>
             <td>{formatDate(p.date)}</td>
             <td>{p.supplierName || "—"}</td>
-            <td>{p.itemName || "—"}</td>
-            <td>{p.rejectionWeight != null ? `${p.rejectionWeight} ${p.weightUnit || "G"}` : "—"}</td>
-            <td>{p.rejectionPieces ?? "—"}</td>
             <td><StatusBadge status={p.rejectionStatus || "PENDING"} /></td>
           </tr>
         ))}
