@@ -90,3 +90,58 @@ export async function deleteSale(id: string, organizationId: string) {
   const { error } = await supabaseAdmin.from("sales").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+export async function getSaleById(id: string, organizationId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("sales")
+    .select("*, lot:lots(*, product:products(*))")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return toCamelCase(data);
+}
+
+export async function updateSale(id: string, data: any, organizationId: string) {
+  const { data: updated, error } = await supabaseAdmin
+    .from("sales")
+    .update({
+      customer: data.customerName || data.customer,
+      bill_no: data.billNo,
+      date: data.date,
+      item_name: data.itemName,
+      description_ref: data.descriptionRef,
+      weight: data.weight,
+      weight_unit: data.weightUnit,
+      pieces: data.pieces,
+      shape: data.shape,
+      size: data.size,
+      lines: data.lines,
+      length: data.lineLength || data.length,
+      sale_price: data.salePrice,
+      discount: data.discount || 0,
+      tax: data.tax || 0,
+      net_sale: data.netSale,
+      final_bill_amount: data.finalBillAmount,
+    })
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  // Update Ledger
+  await supabaseAdmin
+    .from("stock_ledgers")
+    .update({
+      weight: -data.weight,
+      quantity: -(data.pieces || 0),
+    })
+    .eq("reference_id", id)
+    .eq("transaction_type", "SALE")
+    .eq("organization_id", organizationId);
+
+  return toCamelCase(updated);
+}
