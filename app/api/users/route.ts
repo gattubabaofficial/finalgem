@@ -7,7 +7,8 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 export async function GET() {
   try {
     const session = await auth();
-    if ((session?.user as any)?.role !== "ADMIN") {
+    const userRole = (session?.user as any)?.role;
+    if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const { organizationId } = await getTenantContext();
@@ -28,7 +29,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if ((session?.user as any)?.role !== "ADMIN") {
+    const userRole = (session?.user as any)?.role;
+    if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const { organizationId } = await getTenantContext();
