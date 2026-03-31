@@ -116,54 +116,52 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
 
   return (
     <div className="container-fluid p-0 min-vh-100 pb-5">
-      {/* Premium Breadcrumb/Header - Blended with global hero */}
-      <div className="pb-5 pt-4 px-4" style={{ zIndex: 100 }}>
-        <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3 px-4 pt-2">
-          <div className="d-flex align-items-center gap-4">
-            <Link href="/rejection" className="btn btn-white bg-white bg-opacity-10 shadow-sm rounded-4 p-3 border border-white border-opacity-25 transition-all hover-bg-opacity-20 hover-translate-y">
-              <ArrowLeft className="text-white" size={24} />
-            </Link>
-            <div>
-              <div className="d-flex align-items-center gap-2 mb-1">
-                <span className="badge bg-white bg-opacity-10 text-white border border-white border-opacity-25 px-3 py-2 rounded-pill font-mono shadow-sm uppercase">
-                  {type} Rejection
-                </span>
-                <ChevronRight className="text-white text-opacity-50" size={16} />
-                <span className="text-white text-opacity-75 small fw-medium">Lot #{data.lotNo}</span>
-              </div>
-              <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-sm">
-                Lot #{data.lotNo || "N/A"} {loading && "..."}
-              </h3>
+      {/* Premium Breadcrumb/Header */}
+      <div className="bg-primary-gradient shadow-lg rounded-5 mx-4 mt-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3 px-4 pt-3 pb-3 border border-white border-opacity-10">
+        <div className="d-flex align-items-center gap-4">
+          <Link href="/rejection" className="d-flex align-items-center justify-content-center bg-white bg-opacity-10 text-white rounded-4 shadow-sm transition-all hover-translate-y border border-white border-opacity-20" style={{ width: '52px', height: '52px', minWidth: '52px' }}>
+            <ArrowLeft className="text-white" size={24} />
+          </Link>
+          <div>
+            <div className="d-flex align-items-center gap-2 mb-1">
+              <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm border border-white border-opacity-20" style={{ fontSize: '0.75rem' }}>
+                {type} Rejection
+              </span>
+              <ChevronRight className="text-white text-opacity-50" size={16} />
+              <span className="text-white text-opacity-80 small fw-bold tracking-wide">Rejection Detail</span>
             </div>
+            <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-md">
+              Lot #{data.lotNo || "N/A"}
+            </h3>
           </div>
-          
-          <div className="d-flex align-items-center gap-3">
-             {isAdmin && <button 
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={`btn ${isEditMode ? 'btn-white text-primary' : 'bg-white bg-opacity-10 text-white'} d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-bold border border-white border-opacity-25 transition-all`}
-              >
-                <Edit3 size={18} />
-                {isEditMode ? "Cancel Edit" : "Edit Entry"}
-              </button>}
+        </div>
+        
+        <div className="d-flex align-items-center gap-3 pe-md-2">
+          {isAdmin && <button 
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`btn ${isEditMode ? 'bg-white text-primary' : 'bg-white bg-opacity-20 text-white'} d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-extrabold border-0 transition-all`}
+          >
+            <Edit3 size={18} />
+            {isEditMode ? "Cancel" : "Edit Status"}
+          </button>}
 
-             {isAdmin && <button 
-                onClick={handleUpdate}
-                disabled={saving || !isEditMode}
-                className="btn btn-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-primary-sm fw-bold border-0 transition-all hover-scale"
-              >
-                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                {saving ? "Saving..." : "Update Action"}
-              </button>}
+          {isAdmin && <button 
+            onClick={handleUpdate}
+            disabled={saving || !isEditMode}
+            className="btn btn-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-primary-sm fw-bold border-0 transition-all hover-scale"
+          >
+            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            {saving ? "Updating..." : "Update Action"}
+          </button>}
 
-              {isAdmin && <button 
-                onClick={handleDelete}
-                disabled={saving}
-                className="btn btn-link text-white text-opacity-75 hover-text-danger transition-all d-flex align-items-center gap-2 text-decoration-none"
-              >
-                <Trash2 size={18} />
-                <span className="small fw-bold uppercase px-1">Remove</span>
-              </button>}
-          </div>
+          {isAdmin && <button 
+            onClick={handleDelete}
+            disabled={saving}
+            className="btn btn-danger text-white d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm border-0 transition-all"
+          >
+            <Trash2 size={18} />
+            <span className="fw-bold">Remove</span>
+          </button>}
         </div>
       </div>
 
@@ -279,7 +277,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                      </>
                   )}
                   {data.netSale && (
-                     <ModernStatRow label="Original Sale Value" value={`₹${data.netSale.toLocaleString()}`} color="text-warning" isLarge />
+                     <ModernStatRow label="Original Sale Value" value={`\u20b9${data.netSale.toLocaleString()}`} color="text-warning" isLarge />
                   )}
                   
                   <div className="alert bg-warning bg-opacity-10 border-0 rounded-4 text-warning mt-4 mb-0">
@@ -301,10 +299,17 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
       <style jsx>{`
         .bg-navy { background-color: #0f172a !important; }
         .text-navy { color: #0f172a !important; }
-        .shadow-premium { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); }
-        .shadow-primary-sm { box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39); }
-        .bg-rose-subtle-25 { background-color: rgba(244, 63, 94, 0.05); }
-        .bg-primary-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); }
+        .shadow-premium { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05) !important; }
+        .shadow-primary-sm { box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.3) !important; }
+        .bg-rose-subtle-25 { background-color: rgba(244, 63, 94, 0.05) !important; }
+        .bg-primary-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important; }
+        .rounded-5 { border-radius: 2rem !important; }
+        .rounded-4 { border-radius: 1rem !important; }
+        .fw-extrabold { font-weight: 800; }
+        .letter-tight { letter-spacing: -0.025em; }
+        .drop-shadow-md { filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.07)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.06)); }
+        .hover-translate-y:hover { transform: translateY(-3px); }
+        .hover-scale:hover { transform: scale(1.05); }
       `}</style>
     </div>
   );

@@ -6,7 +6,7 @@ import {
   ArrowLeft, Edit, Save, Trash2,
   Loader2, AlertCircle, CheckCircle2,
   Calendar, User, Scale, Layers, Gem,
-  AlertTriangle, Package, DollarSign
+  AlertTriangle, Package, DollarSign, ChevronRight
 } from "lucide-react";
 import { formatINR, formatDate, getStatusLabel, getStatusColor, getCategoryLabel } from "@/lib/utils";
 import Link from "next/link";
@@ -142,42 +142,63 @@ export default function FinishedGoodDetailPage({ params }: { params: Promise<Par
   const netWeight = parseFloat(form.grossWeight || "0") - parseFloat(form.lessWeight || "0");
 
   return (
-    <div className="container-fluid p-0">
-      {/* Header */}
-      <div className="d-flex align-items-center justify-content-between mb-4">
-        <div className="d-flex align-items-center gap-3">
-          <Link href="/finished-goods" className="btn btn-light btn-sm rounded-circle p-2 shadow-sm">
-            <ArrowLeft className="w-4 h-4" />
+    <div className="container-fluid p-0 min-vh-100 pb-5">
+      {/* Premium Breadcrumb/Header */}
+      <div className="bg-primary-gradient shadow-lg rounded-5 mx-4 mt-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3 px-4 pt-3 pb-3 border border-white border-opacity-10">
+        <div className="d-flex align-items-center gap-4">
+          <Link href="/finished-goods" className="d-flex align-items-center justify-content-center bg-white bg-opacity-10 text-white rounded-4 shadow-sm transition-all hover-translate-y border border-white border-opacity-20" style={{ width: '52px', height: '52px', minWidth: '52px' }}>
+            <ArrowLeft className="text-white" size={24} />
           </Link>
           <div>
-            <h1 className="h3 mb-0 text-white fw-bold d-flex align-items-center gap-2">
-              <Gem className="w-5 h-5 text-primary" />
-              <span className="text-primary font-monospace">{data?.lot?.lotNumber || "N/A"}</span>
-            </h1>
-            <p className="text-white text-opacity-50 text-sm mb-0">
-              {form.itemName || "Finished Good"} · {getCategoryLabel(form.category)}
-            </p>
+            <div className="d-flex align-items-center gap-2 mb-1">
+              <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm border border-white border-opacity-20" style={{ fontSize: '0.75rem' }}>
+                {data?.lot?.lotNumber || "N/A"}
+              </span>
+              <ChevronRight className="text-white text-opacity-50" size={16} />
+              <span className="text-white text-opacity-80 small fw-bold tracking-wide">Finished Good Detail</span>
+            </div>
+            <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-md">
+              {form.itemName || "Finished Good"}
+            </h3>
           </div>
         </div>
-
-        <div className="d-flex gap-2">
+        
+        <div className="d-flex align-items-center gap-3 pe-md-2">
           {!isEditMode ? (
             <>
-              {isAdmin && (
-                <button onClick={() => setIsEditMode(true)} className="btn btn-primary shadow-sm d-flex align-items-center gap-2 fw-semibold">
-                  <Edit className="w-4 h-4" /> Edit Record
-                </button>
-              )}
-              {isAdmin && (
-                <button onClick={handleDelete} disabled={deleting} className="btn btn-danger shadow-sm d-flex align-items-center gap-2 fw-semibold">
-                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                </button>
-              )}
+              {isAdmin && <button 
+                onClick={() => setIsEditMode(true)}
+                className="btn bg-white text-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-extrabold border-0 transition-all hover-scale"
+              >
+                <Edit size={18} /> Edit Entry
+              </button>}
+              {isAdmin && <button 
+                onClick={handleDelete}
+                disabled={deleting}
+                className="btn btn-danger text-white d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm border-0 transition-all"
+              >
+                {deleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />} 
+                <span className="fw-bold">Remove</span>
+              </button>}
             </>
           ) : (
-            <button onClick={() => { setIsEditMode(false); fetchData(); setError(""); }} className="btn btn-light shadow-sm">
-              Cancel
-            </button>
+            <>
+              <button 
+                onClick={() => setIsEditMode(false)}
+                className="btn btn-link text-white text-opacity-80 text-decoration-none px-4 fw-bold hover-text-white"
+              >
+                Discard Changes
+              </button>
+              <button 
+                type="submit" 
+                form="editForm"
+                disabled={saving}
+                className="btn bg-white text-indigo d-flex align-items-center gap-2 px-5 py-3 rounded-4 shadow-sm border-0 transition-all"
+              >
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
+                <span className="fw-bold">Apply Updates</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -389,6 +410,23 @@ export default function FinishedGoodDetailPage({ params }: { params: Promise<Par
           </div>
         )}
       </form>
+      <style jsx>{`
+        .bg-light { background-color: #f8fafc !important; }
+        .text-navy { color: #0f172a !important; }
+        .bg-navy { background-color: #0f172a !important; }
+        .bg-primary-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); }
+        .btn-indigo { background-color: #4f46e5; color: white; }
+        .btn-indigo:hover { background-color: #4338ca; color: white; transform: translateY(-2px); }
+        .shadow-premium { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02) !important; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .letter-tight { letter-spacing: -0.025em; }
+        .hover-translate-y:hover { transform: translateY(-3px); }
+        .hover-scale:hover { transform: scale(1.05); }
+        .rounded-5 { border-radius: 2rem !important; }
+        .rounded-4 { border-radius: 1rem !important; }
+        .fw-extrabold { font-weight: 800; }
+        .drop-shadow-md { filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.07)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.06)); }
+      `}</style>
     </div>
   );
 }
