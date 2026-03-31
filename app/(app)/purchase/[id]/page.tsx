@@ -209,18 +209,18 @@ export default function PurchaseDetailPage({ params }: { params: Promise<Params>
   return (
     <div className="container-fluid p-0 min-vh-100 pb-5">
       {/* Premium Breadcrumb/Header */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3 px-4 pt-2">
+      <div className="bg-primary-gradient shadow-lg rounded-5 mx-4 mt-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3 px-4 pt-3 pb-3 border border-white border-opacity-10">
         <div className="d-flex align-items-center gap-4">
-          <Link href="/purchase" className="btn btn-white bg-white bg-opacity-10 shadow-sm rounded-4 p-3 border border-white border-opacity-25 transition-all hover-bg-opacity-20 hover-translate-y">
+          <Link href="/purchase" className="btn btn-white bg-white bg-opacity-10 shadow-sm rounded-4 p-3 border border-white border-opacity-25 transition-all hover-translate-y">
             <ArrowLeft className="text-white" size={24} />
           </Link>
           <div>
             <div className="d-flex align-items-center gap-2 mb-1">
-              <span className="badge bg-white bg-opacity-10 text-white border border-white border-opacity-25 px-3 py-2 rounded-pill font-mono shadow-sm">
+              <span className="badge bg-white bg-opacity-20 text-white border border-white border-opacity-20 px-3 py-2 rounded-pill font-mono shadow-sm">
                 {form.lotNo}
               </span>
               <ChevronRight className="text-white text-opacity-50" size={16} />
-              <span className="text-white text-opacity-75 small fw-medium">Purchase Detail</span>
+              <span className="text-white text-opacity-80 small fw-bold tracking-wide">Purchase Detail</span>
             </div>
             <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-sm">
               {form.itemName || "Item Details"}
@@ -228,29 +228,29 @@ export default function PurchaseDetailPage({ params }: { params: Promise<Params>
           </div>
         </div>
         
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex align-items-center gap-3 pe-md-2">
           {!isEditMode ? (
             <>
               {isAdmin && <button 
                 onClick={() => setIsEditMode(true)}
-                className="btn btn-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-primary-sm fw-bold border-0 transition-all hover-scale"
+                className="btn btn-white text-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-extrabold border-0 transition-all hover-scale"
               >
                 <Edit size={18} /> Edit Entry
               </button>}
               {isAdmin && <button 
                 onClick={handleDelete}
                 disabled={deleting}
-                className="btn btn-white text-danger d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm border-0 transition-all hover-bg-danger-subtle"
+                className="btn btn-danger text-white d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm border-0 transition-all hover-bg-danger-subtle"
               >
                 {deleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />} 
-                <span className="fw-semibold">Remove</span>
+                <span className="fw-bold">Remove</span>
               </button>}
             </>
           ) : (
             <>
               <button 
                 onClick={() => setIsEditMode(false)}
-                className="btn btn-link text-secondary text-decoration-none px-4 fw-bold"
+                className="btn btn-link text-white text-opacity-80 text-decoration-none px-4 fw-bold hover-text-white"
               >
                 Discard Changes
               </button>
@@ -258,7 +258,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<Params>
                 type="submit" 
                 form="detailForm"
                 disabled={saving}
-                className="btn btn-indigo d-flex align-items-center gap-2 px-5 py-3 rounded-4 shadow-indigo-sm border-0 transition-all"
+                className="btn btn-white text-indigo d-flex align-items-center gap-2 px-5 py-3 rounded-4 shadow-sm border-0 transition-all"
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
                 <span className="fw-bold">Apply Updates</span>
