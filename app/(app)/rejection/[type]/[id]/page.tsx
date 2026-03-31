@@ -119,8 +119,8 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
       {/* Premium Breadcrumb/Header */}
       <div className="bg-primary-gradient shadow-lg rounded-5 mx-4 mt-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-3 px-4 pt-3 pb-3 border border-white border-opacity-10">
         <div className="d-flex align-items-center gap-4">
-          <Link href="/rejection" className="d-flex align-items-center justify-content-center bg-white bg-opacity-10 text-white rounded-4 shadow-sm transition-all hover-translate-y border border-white border-opacity-20" style={{ width: '52px', height: '52px', minWidth: '52px' }}>
-            <ArrowLeft className="text-white" size={24} />
+          <Link href="/rejection" className="gem-back-button" aria-label="Go back">
+            <ArrowLeft size={24} />
           </Link>
           <div>
             <div className="d-flex align-items-center gap-2 mb-1">

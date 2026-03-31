@@ -290,10 +290,10 @@ export default function ProductHistoryPage() {
             <div className="d-flex align-items-center gap-4">
               <button 
                 onClick={handleClear} 
-                className="d-flex align-items-center justify-content-center bg-white bg-opacity-10 text-white rounded-4 shadow-sm transition-all hover-translate-y border border-white border-opacity-20" 
-                style={{ width: '52px', height: '52px', minWidth: '52px', border: 'none' }}
+                className="gem-back-button"
+                aria-label="Go back"
               >
-                <ArrowLeft className="text-white" size={24} />
+                <ArrowLeft size={24} />
               </button>
               <div>
                 <div className="d-flex align-items-center gap-2 mb-1">
