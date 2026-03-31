@@ -32,6 +32,7 @@ export const { handlers, auth } = NextAuth({
           credentials.password as string,
           user.password
         );
+        
         if (!isValid) return null;
 
         // ── 3. Check Custom Email Verification ──

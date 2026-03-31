@@ -11,16 +11,33 @@ export async function GET() {
     if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const { organizationId } = await getTenantContext();
-
-    const { data: users, error } = await supabaseAdmin
+    const { organizationId, role: requesterRole } = await getTenantContext();
+    let query = supabaseAdmin
       .from("users")
       .select("id, name, email, role, created_at")
-      .eq("organization_id", organizationId)
       .order("created_at", { ascending: false });
 
+    if (requesterRole !== "SUPERADMIN") {
+      query = query.eq("organization_id", organizationId);
+    }
+
+    const { data: users, error } = await query;
+
+    let organizations: any[] = [];
+    if (requesterRole === "SUPERADMIN") {
+      const { data: orgs } = await supabaseAdmin
+        .from("organizations")
+        .select("id, name")
+        .order("name", { ascending: true });
+      organizations = orgs || [];
+    }
+
     if (error) throw new Error(error.message);
-    return NextResponse.json({ users: (users || []).map((u) => ({ ...u, isActive: true })) });
+    return NextResponse.json({ 
+      users: (users || []).map((u) => ({ ...u, isActive: true })),
+      requesterRole,
+      organizations
+    });
   } catch (e: any) {
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
@@ -33,13 +50,22 @@ export async function POST(req: NextRequest) {
     if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const { organizationId } = await getTenantContext();
-    const { name, email, password, role } = await req.json();
+    const { organizationId: requesterOrgId, role: requesterRole } = await getTenantContext();
+    const { name, email, password, role, organization_id } = await req.json();
     const hashed = await bcrypt.hash(password, 12);
+
+    const targetOrgId = requesterRole === "SUPERADMIN" ? (organization_id || null) : requesterOrgId;
 
     const { data: user, error } = await supabaseAdmin
       .from("users")
-      .insert({ name, email, password: hashed, role, organization_id: organizationId })
+      .insert({ 
+        name, 
+        email, 
+        password: hashed, 
+        role, 
+        organization_id: targetOrgId,
+        is_verified: true
+      })
       .select("id, name, email, role, created_at")
       .single();
 

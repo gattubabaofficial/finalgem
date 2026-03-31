@@ -20,13 +20,17 @@ export default function UsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "STAFF" });
+  const [requesterRole, setRequesterRole] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<{id: string, name: string}[]>([]);
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "STAFF", organization_id: "" });
 
   const fetchUsers = async () => {
     setLoading(true);
     const r = await fetch("/api/users");
     const data = await r.json();
     setUsers(data.users || []);
+    setRequesterRole(data.requesterRole || null);
+    setOrganizations(data.organizations || []);
     setLoading(false);
   };
 
@@ -44,7 +48,7 @@ export default function UsersPage() {
     setSaving(false);
     if (r.ok) {
       setShowForm(false);
-      setForm({ name: "", email: "", password: "", role: "STAFF" });
+      setForm({ name: "", email: "", password: "", role: "STAFF", organization_id: "" });
       fetchUsers();
     } else {
       const d = await r.json();
@@ -137,13 +141,29 @@ export default function UsersPage() {
                   <label className="form-label mb-1">Password *</label>
                   <input required type="password" minLength={6} value={form.password} onChange={(e) => f("password", e.target.value)} placeholder="Min 6 characters" className="form-control" />
                 </div>
-                <div>
+                <div className="mb-3">
                   <label className="form-label mb-1">Role *</label>
                   <select value={form.role} onChange={(e) => f("role", e.target.value)} className="form-select">
                     <option value="STAFF">Staff</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>
+                {requesterRole === "SUPERADMIN" && (
+                  <div>
+                    <label className="form-label mb-1">Organization *</label>
+                    <select 
+                      required 
+                      value={form.organization_id} 
+                      onChange={(e) => f("organization_id", e.target.value)} 
+                      className="form-select"
+                    >
+                      <option value="">Select Organization</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={org.id}>{org.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="submit" disabled={saving} className="btn btn-primary d-flex align-items-center gap-2">
