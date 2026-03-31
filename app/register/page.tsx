@@ -36,18 +36,9 @@ function getPasswordStrength(password: string) {
   };
   const score = Object.values(checks).filter(Boolean).length;
   const labels = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
-  const colors = ["", "#dc3545", "#fd7e14", "#ffc107", "#198754", "#0d6efd"];
+  const colors = ["", "#F8285A", "#fd7e14", "#F6C000", "#2cd07e", "#3b8aff"];
   return { score, label: labels[score] || "", color: colors[score] || "", checks };
 }
-
-const DiamondLogo = () => (
-  <svg className="text-primary icon-30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="-0.757324" y="19.2427" width="28" height="4" rx="2" transform="rotate(-45 -0.757324 19.2427)" fill="currentColor" />
-    <rect x="7.72803" y="27.728" width="28" height="4" rx="2" transform="rotate(-45 7.72803 27.728)" fill="currentColor" />
-    <rect x="10.5366" y="16.3945" width="16" height="4" rx="2" transform="rotate(45 10.5366 16.3945)" fill="currentColor" />
-    <rect x="10.5562" y="-0.556152" width="28" height="4" rx="2" transform="rotate(45 10.5562 -0.556152)" fill="currentColor" />
-  </svg>
-);
 
 export default function RegisterPage() {
   const [organizationName, setOrganizationName] = useState("");
@@ -61,10 +52,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  // ── OTP State ──
   const [verificationCode, setVerificationCode] = useState("");
-
   const router = useRouter();
 
   const strength = useMemo(() => getPasswordStrength(password), [password]);
@@ -83,7 +71,6 @@ export default function RegisterPage() {
     setEmailError("");
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -93,8 +80,6 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Registration failed."); setLoading(false); return; }
-      
-      // Move to Step 2: OTP Entry
       setSuccess(true);
       setLoading(false);
     } catch {
@@ -107,7 +92,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
@@ -115,14 +99,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, code: verificationCode }),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Verification failed. Please check the code.");
-        setLoading(false);
-        return;
-      }
-
-      // Verification successful! Automatically log the user in.
+      if (!res.ok) { setError(data.error || "Verification failed. Please check the code."); setLoading(false); return; }
       const signInRes = await signIn("credentials", { email, password, redirect: false });
       if (signInRes?.error) {
         router.push("/login?verified=true");
@@ -130,7 +107,6 @@ export default function RegisterPage() {
         router.push("/dashboard");
         router.refresh();
       }
-
     } catch {
       setError("A network error occurred. Please try again.");
       setLoading(false);
@@ -139,254 +115,247 @@ export default function RegisterPage() {
 
   const f = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => setter(e.target.value);
 
+  const eyeToggleStyle: React.CSSProperties = {
+    display: "flex", alignItems: "center", justifyContent: "center",
+    padding: "0 14px",
+    background: "var(--gem-paper)",
+    border: "1px solid var(--gem-border)",
+    borderLeft: "none",
+    borderRadius: "0 var(--gem-radius-sm) var(--gem-radius-sm) 0",
+    cursor: "pointer",
+    color: "var(--gem-text-secondary)",
+  };
+
   return (
-    <div className="wrapper" suppressHydrationWarning>
-      {loading && <div id="loading"><div className="loader simple-loader"><div className="loader-body"></div></div></div>}
-      <section className="login-content">
-        <div className="row m-0 align-items-center bg-white vh-100">
+    <div style={{ minHeight: "100vh", display: "flex", background: "var(--gem-bg)" }}>
+      {/* Left: Form */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 24px",
+        background: "#fff",
+        overflowY: "auto",
+      }}>
+        <div style={{ width: "100%", maxWidth: 440 }}>
+          {/* Logo */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+            <div style={{
+              width: 40, height: 40,
+              background: "linear-gradient(135deg, var(--gem-primary), var(--gem-info))",
+              borderRadius: 10,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+            <span style={{ fontSize: 20, fontWeight: 700, color: "var(--gem-text)" }}>Gem Inventory</span>
+          </div>
 
-          {/* ── Left panel ── */}
-          <div className="col-md-6 overflow-auto" style={{ maxHeight: "100vh" }}>
-            <div className="row justify-content-center">
-              <div className="col-md-10">
-                <div className="card card-transparent shadow-none d-flex justify-content-center mb-0 auth-card py-4">
-                  <div className="card-body">
-
-                    <a href="#" className="navbar-brand d-flex align-items-center mb-3">
-                      <DiamondLogo />
-                      <h4 className="logo-title ms-3">Gem Inventory</h4>
-                    </a>
-
-                    {success ? (
-                      /* ── STEP 2: EMAIL VERIFICATION (OTP) ── */
-                      <div className="py-2">
-                        <div className="text-center mb-4">
-                          <div className="mb-3 d-inline-block bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" style={{ width: 64, height: 64 }}>
-                            <Mail size={32} />
-                          </div>
-                          <h3 className="fw-bold mb-2">Check your email</h3>
-                          <p className="text-muted">
-                            We've sent a 6-digit verification code to<br />
-                            <strong>{email}</strong>
-                          </p>
-                        </div>
-
-                        {error && (
-                          <div className="alert alert-danger d-flex align-items-center gap-2 mb-4" role="alert">
-                            <AlertCircle size={16} className="flex-shrink-0" /> {error}
-                          </div>
-                        )}
-
-                        <form onSubmit={handleVerifySubmit}>
-                          <div className="form-group mb-4">
-                            <label htmlFor="otpCode" className="form-label text-center d-block">Enter Verification Code</label>
-                            <input 
-                              type="text" 
-                              className="form-control text-center form-control-lg fw-bold" 
-                              id="otpCode"
-                              maxLength={6}
-                              placeholder="000000" 
-                              value={verificationCode}
-                              onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))} 
-                              required 
-                              style={{ letterSpacing: '8px', fontSize: '24px' }}
-                            />
-                            <div className="form-text text-center mt-2">Check your spam folder if you don't see it.</div>
-                          </div>
-
-                          <button type="submit" className="btn btn-primary w-100 py-3 fw-bold shadow-sm" disabled={loading || verificationCode.length < 6}>
-                            {loading ? "Verifying..." : "Verify & Sign In"}
-                          </button>
-                        </form>
-                      </div>
-                    ) : (
-                      /* ── STEP 1: REGISTRATION FORM ── */
-                      <>
-                        <h2 className="mb-2 text-center">Sign Up</h2>
-                        <p className="text-center text-muted">Create your organization and admin account</p>
-
-                        {error && (
-                          <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
-                            <AlertCircle size={16} className="flex-shrink-0" /> {error}
-                          </div>
-                        )}
-
-                        <form onSubmit={handleRegister}>
-                          <div className="row">
-                            {/* Organization */}
-                            <div className="col-lg-12">
-                              <div className="form-group">
-                                <label htmlFor="organizationName" className="form-label">Company / Organization Name</label>
-                                <input type="text" className="form-control" id="organizationName"
-                                  placeholder="e.g. Acme Gems Inc." value={organizationName}
-                                  onChange={f(setOrganizationName)} required />
-                              </div>
-                            </div>
-
-                            {/* Full Name */}
-                            <div className="col-lg-12">
-                              <div className="form-group">
-                                <label htmlFor="name" className="form-label">Your Full Name</label>
-                                <input type="text" className="form-control" id="name"
-                                  placeholder="e.g. John Doe" value={name}
-                                  onChange={f(setName)} required />
-                              </div>
-                            </div>
-
-                            {/* Email */}
-                            <div className="col-lg-12">
-                              <div className="form-group">
-                                <label htmlFor="email" className="form-label">Email Address</label>
-                                <input
-                                  type="email"
-                                  className={`form-control ${emailError ? "is-invalid" : email && !emailError ? "is-valid" : ""}`}
-                                  id="email" placeholder="admin@company.com" value={email}
-                                  onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(""); }}
-                                  onBlur={handleEmailBlur} required autoComplete="email"
-                                />
-                                {emailError && <div className="invalid-feedback d-flex align-items-center gap-1"><AlertCircle size={12} />{emailError}</div>}
-                                {email && !emailError && <div className="valid-feedback d-flex align-items-center gap-1"><CheckCircle2 size={12} />Looks good!</div>}
-                              </div>
-                            </div>
-
-                            {/* Password */}
-                            <div className="col-lg-12">
-                              <div className="form-group">
-                                <label htmlFor="password" className="form-label">Password</label>
-                                <div className="input-group">
-                                  <input type={showPassword ? "text" : "password"} className="form-control border-end-0"
-                                    id="password" placeholder="Create a strong password" value={password}
-                                    onChange={f(setPassword)} required autoComplete="new-password" />
-                                  <button type="button" className="btn btn-outline-secondary border-start-0"
-                                    onClick={() => setShowPassword(v => !v)} tabIndex={-1}>
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                  </button>
-                                </div>
-                                {password && (
-                                  <div className="mt-2">
-                                    <div className="d-flex gap-1 mb-1">
-                                      {[1,2,3,4,5].map(i => (
-                                        <div key={i} style={{ height: 4, flex: 1, borderRadius: 4,
-                                          backgroundColor: i <= strength.score ? strength.color : "#dee2e6",
-                                          transition: "background-color 0.3s" }} />
-                                      ))}
-                                    </div>
-                                    <small style={{ color: strength.color }} className="fw-semibold d-flex align-items-center gap-1">
-                                      {strength.score >= 3 ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
-                                      {strength.label}
-                                    </small>
-                                    <div className="mt-1 d-flex flex-wrap gap-2">
-                                      {[
-                                        { key: "length", label: "8+ chars" },
-                                        { key: "uppercase", label: "Uppercase" },
-                                        { key: "lowercase", label: "Lowercase" },
-                                        { key: "number", label: "Number" },
-                                        { key: "special", label: "Special char" },
-                                      ].map(({ key, label }) => (
-                                        <span key={key} className={`badge ${(strength.checks as any)[key] ? "bg-success" : "bg-light text-muted border"}`} style={{ fontSize: "0.7rem" }}>
-                                          {(strength.checks as any)[key] ? "✓" : "○"} {label}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Confirm Password */}
-                            <div className="col-lg-12">
-                              <div className="form-group">
-                                <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-                                <div className="input-group">
-                                  <input
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    className={`form-control border-end-0 ${passwordsMismatch ? "is-invalid" : passwordsMatch ? "is-valid" : ""}`}
-                                    id="confirmPassword" placeholder="Repeat password" value={confirmPassword}
-                                    onChange={f(setConfirmPassword)} required autoComplete="new-password"
-                                  />
-                                  <button type="button"
-                                    className={`btn btn-outline-secondary border-start-0 ${passwordsMismatch ? "border-danger" : passwordsMatch ? "border-success" : ""}`}
-                                    onClick={() => setShowConfirmPassword(v => !v)} tabIndex={-1}>
-                                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                  </button>
-                                </div>
-                                {passwordsMismatch && <div className="invalid-feedback d-block d-flex align-items-center gap-1"><AlertCircle size={12} />Passwords do not match.</div>}
-                                {passwordsMatch && <div className="valid-feedback d-block d-flex align-items-center gap-1"><CheckCircle2 size={12} />Passwords match.</div>}
-                              </div>
-                            </div>
-
-                            {/* Terms */}
-                            <div className="col-lg-12 d-flex justify-content-center mt-2">
-                              <div className="form-check mb-3">
-                                <input type="checkbox" className="form-check-input" id="customCheck1" required />
-                                <label className="form-check-label" htmlFor="customCheck1">I agree with the terms of use</label>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="d-flex justify-content-center">
-                            <button type="submit" className="btn btn-primary px-5" disabled={loading}>
-                              {loading
-                                ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />Creating account…</>
-                                : "Sign Up"}
-                            </button>
-                          </div>
-                        </form>
-
-                        <div className="mt-4 pt-3 border-top text-center">
-                          <p className="mb-0">
-                            Already have an account?{" "}
-                            <Link href="/login" className="text-primary text-decoration-underline fw-bold">Sign in</Link>
-                          </p>
-                        </div>
-                      </>
-                    )}
-
-                  </div>
+          {success ? (
+            /* STEP 2: OTP */
+            <div>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: "50%",
+                  background: "var(--gem-primary-light)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 16px",
+                  color: "var(--gem-primary)",
+                }}>
+                  <Mail size={28} />
                 </div>
+                <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Check your email</h2>
+                <p style={{ fontSize: 14, color: "var(--gem-text-secondary)" }}>
+                  We&apos;ve sent a 6-digit code to<br /><strong style={{ color: "var(--gem-text)" }}>{email}</strong>
+                </p>
               </div>
-            </div>
 
-            <div className="sign-bg">
-              <svg width="280" height="230" viewBox="0 0 431 398" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g opacity="0.05">
-                  <rect x="-157.085" y="193.773" width="543" height="77.5714" rx="38.7857" transform="rotate(-45 -157.085 193.773)" fill="#3B8AFF" />
-                  <rect x="7.46875" y="358.327" width="543" height="77.5714" rx="38.7857" transform="rotate(-45 7.46875 358.327)" fill="#3B8AFF" />
-                  <rect x="61.9355" y="138.545" width="310.286" height="77.5714" rx="38.7857" transform="rotate(45 61.9355 138.545)" fill="#3B8AFF" />
-                  <rect x="62.3154" y="-190.173" width="543" height="77.5714" rx="38.7857" transform="rotate(45 62.3154 -190.173)" fill="#3B8AFF" />
-                </g>
-              </svg>
-            </div>
-          </div>
+              {error && <div className="alert alert-danger" style={{ marginBottom: 16 }}><AlertCircle size={16} style={{ flexShrink: 0 }} /> {error}</div>}
 
-          {/* ── Right decorative panel ── */}
-          <div className="col-md-6 d-md-block d-none bg-primary p-0 mt-n1 vh-100 overflow-hidden">
-            <div className="d-flex flex-column align-items-center justify-content-center h-100 p-5 text-white"
-              style={{ background: "linear-gradient(135deg,#3b8aff 0%,#5e60ce 100%)" }}>
-              <svg viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 120, height: 120, opacity: 0.25, marginBottom: 32 }}>
-                <rect x="-0.757324" y="19.2427" width="28" height="4" rx="2" transform="rotate(-45 -0.757324 19.2427)" fill="white" />
-                <rect x="7.72803" y="27.728" width="28" height="4" rx="2" transform="rotate(-45 7.72803 27.728)" fill="white" />
-                <rect x="10.5366" y="16.3945" width="16" height="4" rx="2" transform="rotate(45 10.5366 16.3945)" fill="white" />
-                <rect x="10.5562" y="-0.556152" width="28" height="4" rx="2" transform="rotate(45 10.5562 -0.556152)" fill="white" />
-              </svg>
-              <h2 className="text-white fw-bold mb-3">Gem Inventory</h2>
-              <p className="text-center" style={{ opacity: 0.8, maxWidth: 320 }}>
-                Get started organizing your inventory in minutes. Multiple warehouses, strict ledger tracking, and instant reports.
-              </p>
-              <div className="d-flex gap-3 mt-4 flex-wrap justify-content-center">
-                {[{ label: "Fast Setup", icon: "🚀" }, { label: "Secure", icon: "🔒" }, { label: "Scalable", icon: "📈" }].map((item) => (
-                  <div key={item.label} className="d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
-                    style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}>
-                    <span>{item.icon}</span>
-                    <span className="fw-semibold small">{item.label}</span>
+              <form onSubmit={handleVerifySubmit}>
+                <div style={{ marginBottom: 20 }}>
+                  <label className="form-label" style={{ textAlign: "center", display: "block" }}>Enter Verification Code</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                    required
+                    style={{ textAlign: "center", letterSpacing: 8, fontSize: 24, fontWeight: 700, padding: "14px" }}
+                  />
+                  <div style={{ fontSize: 12, color: "var(--gem-text-secondary)", textAlign: "center", marginTop: 8 }}>Check your spam folder if you don&apos;t see it.</div>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading || verificationCode.length < 6} style={{ width: "100%", height: 44, fontWeight: 600 }}>
+                  {loading ? "Verifying..." : "Verify & Sign In"}
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* STEP 1: Register */
+            <>
+              <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Create Account</h2>
+              <p style={{ fontSize: 14, color: "var(--gem-text-secondary)", marginBottom: 28 }}>Set up your organization and admin account</p>
+
+              {error && <div className="alert alert-danger" style={{ marginBottom: 16 }}><AlertCircle size={16} style={{ flexShrink: 0 }} /> {error}</div>}
+
+              <form onSubmit={handleRegister}>
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Company / Organization Name</label>
+                  <input type="text" className="form-control" placeholder="e.g. Acme Gems Inc." value={organizationName} onChange={f(setOrganizationName)} required />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Your Full Name</label>
+                  <input type="text" className="form-control" placeholder="e.g. John Doe" value={name} onChange={f(setName)} required />
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Email Address</label>
+                  <input
+                    type="email"
+                    className={`form-control ${emailError ? "is-invalid" : email && !emailError ? "is-valid" : ""}`}
+                    placeholder="admin@company.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(""); }}
+                    onBlur={handleEmailBlur}
+                    required autoComplete="email"
+                  />
+                  {emailError && <div className="invalid-feedback"><AlertCircle size={12} />{emailError}</div>}
+                  {email && !emailError && <div className="valid-feedback"><CheckCircle2 size={12} />Looks good!</div>}
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Password</label>
+                  <div className="input-group">
+                    <input type={showPassword ? "text" : "password"} className="form-control" placeholder="Create a strong password" value={password} onChange={f(setPassword)} required autoComplete="new-password" style={{ borderRight: "none" }} />
+                    <button type="button" onClick={() => setShowPassword(v => !v)} tabIndex={-1} style={eyeToggleStyle}>
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                  {password && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ display: "flex", gap: 3, marginBottom: 4 }}>
+                        {[1,2,3,4,5].map(i => (
+                          <div key={i} style={{ height: 3, flex: 1, borderRadius: 3, backgroundColor: i <= strength.score ? strength.color : "#e2e8f0", transition: "background-color 0.3s" }} />
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 12, color: strength.color, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                        {strength.score >= 3 ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                        {strength.label}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                        {[
+                          { key: "length", label: "8+ chars" },
+                          { key: "uppercase", label: "Uppercase" },
+                          { key: "lowercase", label: "Lowercase" },
+                          { key: "number", label: "Number" },
+                          { key: "special", label: "Special" },
+                        ].map(({ key, label }) => (
+                          <span key={key} className="badge" style={{
+                            background: (strength.checks as any)[key] ? "var(--gem-success-light)" : "var(--gem-bg)",
+                            color: (strength.checks as any)[key] ? "var(--gem-success)" : "var(--gem-text-secondary)",
+                            border: `1px solid ${(strength.checks as any)[key] ? "rgba(44,208,126,0.2)" : "var(--gem-border)"}`,
+                            fontSize: 11,
+                          }}>
+                            {(strength.checks as any)[key] ? "+" : "-"} {label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
+                <div style={{ marginBottom: 16 }}>
+                  <label className="form-label">Confirm Password</label>
+                  <div className="input-group">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      className={`form-control ${passwordsMismatch ? "is-invalid" : passwordsMatch ? "is-valid" : ""}`}
+                      placeholder="Repeat password"
+                      value={confirmPassword}
+                      onChange={f(setConfirmPassword)}
+                      required autoComplete="new-password"
+                      style={{ borderRight: "none" }}
+                    />
+                    <button type="button" onClick={() => setShowConfirmPassword(v => !v)} tabIndex={-1} style={eyeToggleStyle}>
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {passwordsMismatch && <div className="invalid-feedback" style={{ display: "flex" }}><AlertCircle size={12} />Passwords do not match.</div>}
+                  {passwordsMatch && <div className="valid-feedback" style={{ display: "flex" }}><CheckCircle2 size={12} />Passwords match.</div>}
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 20, cursor: "pointer" }}>
+                  <input type="checkbox" required style={{ width: 16, height: 16, accentColor: "var(--gem-primary)" }} />
+                  I agree with the terms of use
+                </label>
+
+                <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: "100%", height: 44, fontWeight: 600 }}>
+                  {loading ? <><span className="spinner-border spinner-border-sm" style={{ marginRight: 8 }} />Creating account...</> : "Sign Up"}
+                </button>
+              </form>
+
+              <div style={{ textAlign: "center", marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--gem-border)" }}>
+                <p style={{ fontSize: 13.5, color: "var(--gem-text-secondary)", margin: 0 }}>
+                  Already have an account?{" "}
+                  <Link href="/login" style={{ fontWeight: 600, color: "var(--gem-primary)" }}>Sign in</Link>
+                </p>
+              </div>
+            </>
+          )}
         </div>
-      </section>
+      </div>
+
+      {/* Right: Decorative */}
+      <div style={{
+        flex: 1,
+        background: "linear-gradient(135deg, #3b8aff 0%, #725AF2 100%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 48,
+        color: "#fff",
+      }} className="d-none d-md-flex">
+        <div style={{
+          width: 100, height: 100, borderRadius: 24,
+          background: "rgba(255,255,255,0.12)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          marginBottom: 32,
+        }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>Gem Inventory</h2>
+        <p style={{ fontSize: 15, opacity: 0.85, textAlign: "center", maxWidth: 340, lineHeight: 1.6 }}>
+          Get started organizing your inventory in minutes. Multiple warehouses, strict ledger tracking, and instant reports.
+        </p>
+        <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap", justifyContent: "center" }}>
+          {[
+            { label: "Fast Setup", icon: "M13 2L3 14h9l-1 8 10-12h-9l1-8" },
+            { label: "Secure", icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
+            { label: "Scalable", icon: "M18 20V10M12 20V4M6 20v-6" },
+          ].map((item) => (
+            <div key={item.label} style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 16px", borderRadius: 999,
+              background: "rgba(255,255,255,0.15)",
+              fontSize: 13, fontWeight: 600,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d={item.icon} />
+              </svg>
+              {item.label}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

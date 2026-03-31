@@ -55,20 +55,16 @@ export default function UsersPage() {
   const f = (k: string, v: string) => setForm((prev) => ({ ...prev, [k]: v }));
 
   return (
-    <div className="container-fluid p-0">
+    <div>
       {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-white mb-1" /> User Management
-          </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            Admin only — manage system users and roles
-          </p>
+      <div className="gem-page-header">
+        <div>
+          <h1><Users size={20} /> User Management</h1>
+          <p>Admin only — manage system users and roles</p>
         </div>
-        <div className="col-auto ms-auto text-end mt-n1">
-          <button onClick={() => setShowForm(true)} className="btn btn-primary shadow-sm flex items-center gap-1">
-            <Plus className="w-4 h-4" /> Add User
+        <div>
+          <button onClick={() => setShowForm(true)} className="btn btn-primary">
+            <Plus size={16} /> Add User
           </button>
         </div>
       </div>

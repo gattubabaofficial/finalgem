@@ -227,18 +227,16 @@ export default function SalesPage() {
   const f = (k: string, v: string | boolean) => setForm((prev) => ({ ...prev, [k]: v }));
 
   return (
-    <div className="container-fluid p-0">
+    <div>
       {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-white mb-1" /> Sales
-          </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">{total} total records</p>
+      <div className="gem-page-header">
+        <div>
+          <h1><TrendingUp size={20} /> Sales</h1>
+          <p>{total} total records</p>
         </div>
-        <div className="col-auto ms-auto text-end mt-n1">
-          <button onClick={() => setShowForm(true)} className="btn btn-primary shadow-sm">
-            <Plus className="w-4 h-4 me-1 align-middle d-inline-block" /> New Sale
+        <div>
+          <button onClick={() => setShowForm(true)} className="btn btn-primary">
+            <Plus size={16} /> New Sale
           </button>
         </div>
       </div>

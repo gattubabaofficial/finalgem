@@ -35,16 +35,12 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div className="container-fluid p-0">
+    <div>
       {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-white mb-1" /> Reports
-          </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            Financial and inventory analytics
-          </p>
+      <div className="gem-page-header">
+        <div>
+          <h1><BarChart3 size={20} /> Reports</h1>
+          <p>Financial and inventory analytics</p>
         </div>
       </div>
 

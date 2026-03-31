@@ -77,16 +77,12 @@ export default function RejectionPage() {
   ];
 
   return (
-    <div className="container-fluid p-0">
+    <div>
       {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-warning mb-1" /> Rejections
-          </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            Purchase rejections, manufacturing rejections & customer returns
-          </p>
+      <div className="gem-page-header">
+        <div>
+          <h1><AlertTriangle size={20} className="text-warning" /> Rejections</h1>
+          <p>Purchase rejections, manufacturing rejections & customer returns</p>
         </div>
       </div>
 
@@ -277,26 +273,20 @@ function SummaryCard({
   color: "warning" | "danger" | "info";
   icon: React.ReactNode;
 }) {
-  const colorMap = {
-    warning: "text-warning",
-    danger: "text-danger",
-    info: "text-info",
+  const gradientMap = {
+    warning: "linear-gradient(135deg, #F59E0B, #D97706)",
+    danger: "linear-gradient(135deg, #EF4444, #DC2626)",
+    info: "linear-gradient(135deg, #6366F1, #4F46E5)",
   };
   return (
-    <div className="card flex-fill">
-      <div className="card-body">
-        <div className="row">
-          <div className="col mt-0">
-            <h5 className="card-title">{label}</h5>
-          </div>
-          <div className="col-auto">
-            <div className={`stat ${colorMap[color]}`}>
-              {icon}
-            </div>
-          </div>
+    <div className="gem-stat-card" style={{ flex: 1 }}>
+      <div className="gem-stat-card__header">
+        <span className="gem-stat-card__title">{label}</span>
+        <div className="gem-stat-card__icon" style={{ background: gradientMap[color], color: "#fff" }}>
+          {icon}
         </div>
-        <h1 className="mt-1 mb-3">{value}</h1>
       </div>
+      <div className="gem-stat-card__value">{value}</div>
     </div>
   );
 }

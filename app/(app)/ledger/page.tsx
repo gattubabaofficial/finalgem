@@ -33,17 +33,14 @@ export default function LedgerPage() {
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
   return (
-    <div className="container-fluid p-0 pb-5">
+    <div>
       {/* ── HEADER ── */}
-      <div className="px-4 pt-4">
-        <div className="mb-4">
-          <h1 className="h3 text-white fw-bold d-flex align-items-center gap-2 mb-1">
-            <BookOpen size={24} className="text-white" /> Stock Ledger
-          </h1>
-          <p className="text-white text-opacity-75 small m-0">
-            Complete audit trail of all inventory movements ({total} entries)
-          </p>
+      <div className="gem-page-header" style={{ padding: '0 16px' }}>
+        <div>
+          <h1><BookOpen size={20} /> Stock Ledger</h1>
+          <p>Complete audit trail of all inventory movements ({total} entries)</p>
         </div>
+      </div>
 
         {/* ── FILTERS ── */}
         <div className="card mb-4 shadow-sm border-0 rounded-4">
@@ -110,7 +107,6 @@ export default function LedgerPage() {
             </table>
           </div>
         </div>
-      </div>
     </div>
   );
 }

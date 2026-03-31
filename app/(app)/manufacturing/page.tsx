@@ -332,16 +332,16 @@ export default function ManufacturingPage() {
 
   /* ─── Render ─────────────────────────────────────────────────── */
   return (
-    <div className="container-fluid p-0" suppressHydrationWarning>
+    <div>
       {/* Header */}
-      <div className="row mb-2 mb-xl-3" suppressHydrationWarning>
-        <div className="col-auto d-none d-sm-block" suppressHydrationWarning>
-          <h1 className="h3 d-inline align-middle text-white">Manufacturing</h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">{total} total records</p>
+      <div className="gem-page-header">
+        <div>
+          <h1>Manufacturing</h1>
+          <p>{total} total records</p>
         </div>
-        <div className="col-auto ms-auto text-end mt-n1" suppressHydrationWarning>
-          <button onClick={() => setShowForm(true)} className="btn btn-primary shadow-sm">
-            <Plus className="w-4 h-4 me-1 align-middle d-inline-block" /> New Entry
+        <div>
+          <button onClick={() => setShowForm(true)} className="btn btn-primary">
+            <Plus size={16} /> New Entry
           </button>
         </div>
       </div>

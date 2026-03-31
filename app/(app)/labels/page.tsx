@@ -118,16 +118,12 @@ export default function LabelsPage() {
   }
 
   return (
-    <div className="container-fluid p-0">
+    <div>
       {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <Tag className="w-5 h-5 text-white mb-1" /> Label System
-          </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            Generate printable stock and received labels
-          </p>
+      <div className="gem-page-header">
+        <div>
+          <h1><Tag size={20} /> Label System</h1>
+          <p>Generate printable stock and received labels</p>
         </div>
       </div>
 
@@ -139,9 +135,9 @@ export default function LabelsPage() {
               <h5 className="card-title mb-0">1. Select Sub Lot</h5>
             </div>
             <div className="card-body space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by lot or sub-lot..." className="form-control ps-5" />
+              <div className="input-group">
+                <span className="input-group-text"><Search className="w-4 h-4" /></span>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by lot or sub-lot..." className="form-control" />
               </div>
               <div className="space-y-1.5 max-h-72 overflow-y-auto mt-3">
                 {loading ? (

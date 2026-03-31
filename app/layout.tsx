@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
+import { Inter } from "next/font/google";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Gem Inventory Management System",
@@ -17,35 +21,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" dir="ltr" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+    <html lang="en" dir="ltr" suppressHydrationWarning className={inter.variable}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-        {/* Hope UI — Library / Plugin CSS */}
-        <link rel="stylesheet" href="/hopeui/css/core/libs.min.css" />
-        {/* Hope UI Design System */}
-        <link rel="stylesheet" href="/hopeui/css/hope-ui.min.css" />
-        {/* Hope UI Custom overrides */}
-        <link rel="stylesheet" href="/hopeui/css/custom.min.css" />
-        {/* Hope UI Dark mode support */}
-        <link rel="stylesheet" href="/hopeui/css/dark.min.css" />
       </head>
-      <body suppressHydrationWarning>
+      <body className="gem-body" suppressHydrationWarning>
         <SessionProvider>
           {children}
         </SessionProvider>
-        {/* Hope UI — Bootstrap + Core libs */}
-        <script src="/hopeui/js/core/libs.min.js"></script>
-        {/* Hope UI — External plugins */}
-        <script src="/hopeui/js/core/external.min.js"></script>
-        {/* Hope UI — Main script (sidebar toggle, settings, etc.) */}
-        <script src="/hopeui/js/hope-ui.js" defer></script>
       </body>
     </html>
   );

@@ -275,44 +275,34 @@ export default function PurchasePage() {
   const bunch = parseInt(linesForm.bunch || "0") || 0;
 
   return (
-    <div className="container-fluid p-0" suppressHydrationWarning={true}>
+    <div>
       {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white">Purchase</h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            {tab === "purchase" ? `${purchaseTotal} purchases` : `${linesTotal} lines entries`}
-          </p>
+      <div className="gem-page-header">
+        <div>
+          <h1>Purchase</h1>
+          <p>{tab === "purchase" ? `${purchaseTotal} purchases` : `${linesTotal} lines entries`}</p>
         </div>
-        <div className="col-auto ms-auto text-end mt-n1">
+        <div>
           {tab === "purchase" ? (
-            <button onClick={() => setShowPurchaseForm(true)} className="btn btn-primary shadow-sm">
-              <Plus className="w-4 h-4 me-1 align-middle d-inline-block" /> New Purchase
+            <button onClick={() => setShowPurchaseForm(true)} className="btn btn-primary">
+              <Plus size={16} /> New Purchase
             </button>
           ) : (
-            <button onClick={() => setShowLinesForm(true)} className="btn btn-primary shadow-sm">
-              <Plus className="w-4 h-4 me-1 align-middle d-inline-block" /> New Lines Entry
+            <button onClick={() => setShowLinesForm(true)} className="btn btn-primary">
+              <Plus size={16} /> New Lines Entry
             </button>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="card mb-3" suppressHydrationWarning={true}>
-        <div className="card-body p-0" suppressHydrationWarning={true}>
-          <div className="d-flex border-bottom" suppressHydrationWarning={true}>
-            <button
-              className={`btn rounded-0 px-4 py-3 d-flex align-items-center gap-2 ${tab === "purchase" ? "border-bottom border-primary border-2 text-primary fw-bold" : "text-muted"}`}
-              style={{ borderBottom: tab === "purchase" ? "3px solid" : "3px solid transparent" }}
-              onClick={() => setTab("purchase")}
-            >
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div style={{ padding: 0 }}>
+          <div className="gem-tabs">
+            <button className={`gem-tab ${tab === "purchase" ? "gem-tab--active" : ""}`} onClick={() => setTab("purchase")}>
               <ShoppingCart size={16} /> Purchase
             </button>
-            <button
-              className={`btn rounded-0 px-4 py-3 d-flex align-items-center gap-2 ${tab === "lines" ? "border-bottom border-primary border-2 text-primary fw-bold" : "text-muted"}`}
-              style={{ borderBottom: tab === "lines" ? "3px solid" : "3px solid transparent" }}
-              onClick={() => setTab("lines")}
-            >
+            <button className={`gem-tab ${tab === "lines" ? "gem-tab--active" : ""}`} onClick={() => setTab("lines")}>
               <AlignJustify size={16} /> Lines Entry
             </button>
           </div>

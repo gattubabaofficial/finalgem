@@ -146,18 +146,16 @@ export default function ProductHistoryPage() {
   const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   return (
-    <div className="container-fluid p-0">
+    <div>
 
       {/* ─────────────── LIST VIEW ─────────────── */}
       {!isDetail && (
-        <div className="px-4 pt-4">
-          <div className="mb-4">
-            <h1 className="h3 text-white fw-bold d-flex align-items-center gap-2 mb-1">
-              <History size={24} /> Inventory Lifecycle
-            </h1>
-            <p className="text-white text-opacity-75 small m-0">
-              Detailed history and flow tracking for all product lots
-            </p>
+        <div>
+          <div className="gem-page-header">
+            <div>
+              <h1><History size={20} /> Inventory Lifecycle</h1>
+              <p>Detailed history and flow tracking for all product lots</p>
+            </div>
           </div>
 
           <form onSubmit={handleSearch} className="mb-4">
@@ -276,11 +274,11 @@ export default function ProductHistoryPage() {
                 <ArrowLeft size={16} />
               </button>
               <div>
-                <h1 className="h3 mb-0 text-white fw-bold d-flex align-items-center gap-2">
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Gem size={20} className="text-primary" />
                   <span className="text-primary font-monospace">{lot.lotNo}</span>
                 </h1>
-                <p className="text-white text-opacity-50 small mb-0">
+                <p className="text-muted small mb-0">
                   {form.itemName || "Product"} · {getCategoryLabel(form.category)}
                 </p>
               </div>

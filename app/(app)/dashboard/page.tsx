@@ -11,14 +11,14 @@ import {
 } from "recharts";
 
 const STATUS_COLORS: Record<string, string> = {
-  IN_STOCK: "#10b981",
-  IN_PROCESS: "#f59e0b",
-  READY: "#3b82f6",
-  PARTIALLY_SOLD: "#8b5cf6",
-  CLOSED: "#6b7280",
-  RETURNED: "#06b6d4",
+  IN_STOCK: "#2cd07e",
+  IN_PROCESS: "#F6C000",
+  READY: "#3b8aff",
+  PARTIALLY_SOLD: "#725AF2",
+  CLOSED: "#718096",
+  RETURNED: "#43CED7",
   PENDING: "#f97316",
-  CLOSED_RETURNED: "#ef4444",
+  CLOSED_RETURNED: "#F8285A",
 };
 
 export default function DashboardPage() {
@@ -33,8 +33,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64" suppressHydrationWarning={true}>
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "50vh" }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "var(--gem-primary)" }} />
       </div>
     );
   }
@@ -42,100 +42,111 @@ export default function DashboardPage() {
   const statusData = (stats?.subLotsByStatus || []).map((s: any) => ({
     name: getStatusLabel(s.status),
     value: s._count,
-    color: STATUS_COLORS[s.status] || "#6b7280",
+    color: STATUS_COLORS[s.status] || "#718096",
   }));
 
   const profit = (stats?.totalSaleValue || 0) - (stats?.totalPurchaseValue || 0);
 
   return (
-    <div className="container-fluid p-0" suppressHydrationWarning={true}>
-      {/* Header */}
-      <div className="row mb-2 mb-xl-3">
-        <div className="col-auto d-none d-sm-block">
-          <h1 className="h3 d-inline align-middle text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-white mb-1" /> Inventory Dashboard
+    <div>
+      {/* Page Header */}
+      <div className="gem-page-header">
+        <div>
+          <h1 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Activity size={22} style={{ color: "var(--gem-primary)" }} /> Inventory Dashboard
           </h1>
-          <p className="text-white text-opacity-75 text-sm mt-1">
-            Live overview of your gem inventory
-          </p>
+          <p>Live overview of your gem inventory</p>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="row mt-4 pt-3 pt-sm-0 mt-sm-0">
-        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
-          <StatCard
-            title="Total Lots"
-            value={stats?.totalLots || 0}
-            icon={<Package size={18} className="align-middle" />}
-            color="primary"
-          />
+      <div className="row" style={{ marginBottom: 24 }}>
+        <div className="col-6 col-xxl-3" style={{ marginBottom: 16 }}>
+          <div className="gem-stat-card">
+            <div className="gem-stat-card__header">
+              <span className="gem-stat-card__title">Total Lots</span>
+              <div className="gem-stat-card__icon" style={{ background: "linear-gradient(135deg, #5D5FEF, #7B61FF)", color: "#fff" }}>
+                <Package size={20} />
+              </div>
+            </div>
+            <div className="gem-stat-card__value">{stats?.totalLots || 0}</div>
+          </div>
         </div>
-        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
-          <StatCard
-            title="Sub-Lots"
-            value={stats?.totalSubLots || 0}
-            icon={<Gem size={18} className="align-middle" />}
-            color="success"
-          />
+        <div className="col-6 col-xxl-3" style={{ marginBottom: 16 }}>
+          <div className="gem-stat-card">
+            <div className="gem-stat-card__header">
+              <span className="gem-stat-card__title">Sub-Lots</span>
+              <div className="gem-stat-card__icon" style={{ background: "linear-gradient(135deg, #22C55E, #16A34A)", color: "#fff" }}>
+                <Gem size={20} />
+              </div>
+            </div>
+            <div className="gem-stat-card__value">{stats?.totalSubLots || 0}</div>
+          </div>
         </div>
-        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
-          <StatCard
-            title="Purchase Value"
-            value={formatINR(stats?.totalPurchaseValue || 0)}
-            icon={<ShoppingCart size={18} className="align-middle" />}
-            color="warning"
-          />
+        <div className="col-6 col-xxl-3" style={{ marginBottom: 16 }}>
+          <div className="gem-stat-card">
+            <div className="gem-stat-card__header">
+              <span className="gem-stat-card__title">Purchase Value</span>
+              <div className="gem-stat-card__icon" style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "#fff" }}>
+                <ShoppingCart size={20} />
+              </div>
+            </div>
+            <div className="gem-stat-card__value">{formatINR(stats?.totalPurchaseValue || 0)}</div>
+          </div>
         </div>
-        <div className="col-6 col-sm-6 col-xxl-3 d-flex">
-          <StatCard
-            title="Sales Value"
-            value={formatINR(stats?.totalSaleValue || 0)}
-            icon={<TrendingUp size={18} className="align-middle" />}
-            color="info"
-          />
+        <div className="col-6 col-xxl-3" style={{ marginBottom: 16 }}>
+          <div className="gem-stat-card">
+            <div className="gem-stat-card__header">
+              <span className="gem-stat-card__title">Sales Value</span>
+              <div className="gem-stat-card__icon" style={{ background: "linear-gradient(135deg, #6366F1, #4F46E5)", color: "#fff" }}>
+                <TrendingUp size={20} />
+              </div>
+            </div>
+            <div className="gem-stat-card__value">{formatINR(stats?.totalSaleValue || 0)}</div>
+          </div>
         </div>
       </div>
 
       {/* Profit + Alerts Row */}
-      {/* Profit + Alerts Row */}
       <div className="row">
-        <div className="col-12 col-lg-4 d-flex">
-          <div className="card flex-fill">
+        <div className="col-12 col-lg-4" style={{ marginBottom: 24 }}>
+          <div className="card" style={{ height: "100%" }}>
             <div className="card-body">
-              <h5 className="card-title mb-1">Net Profit / Loss</h5>
-              <h1 className={`mt-1 mb-3 ${profit >= 0 ? "text-success" : "text-danger"}`}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gem-text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>Net Profit / Loss</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: profit >= 0 ? "var(--gem-success)" : "var(--gem-error)", lineHeight: 1.2, marginBottom: 12 }}>
                 {formatINR(profit)}
-              </h1>
-              <div className="mb-0">
-                <span className={profit >= 0 ? "text-success" : "text-danger"}>
-                  {profit >= 0 ? <ArrowUpRight className="align-middle me-1" /> : <ArrowDownRight className="align-middle me-1" />}
-                  {profit >= 0 ? "Positive" : "Negative"} margin
-                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: profit >= 0 ? "var(--gem-success)" : "var(--gem-error)" }}>
+                {profit >= 0 ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                {profit >= 0 ? "Positive" : "Negative"} margin
               </div>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-lg-4 d-flex">
-          <div className="card flex-fill">
+        <div className="col-12 col-lg-4" style={{ marginBottom: 24 }}>
+          <div className="card" style={{ height: "100%" }}>
             <div className="card-body">
-              <h5 className="card-title mb-1">Rejection Pending</h5>
-              <h1 className="mt-1 mb-3 text-warning">{stats?.pendingRejections || 0}</h1>
-              <div className="mb-0 text-warning">
-                <AlertTriangle className="align-middle me-1" /> Requires attention
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gem-text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>Rejection Pending</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "var(--gem-warning)", lineHeight: 1.2, marginBottom: 12 }}>
+                {stats?.pendingRejections || 0}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--gem-warning)" }}>
+                <AlertTriangle size={16} /> Requires attention
               </div>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-lg-4 d-flex">
-          <div className="card flex-fill">
+        <div className="col-12 col-lg-4" style={{ marginBottom: 24 }}>
+          <div className="card" style={{ height: "100%" }}>
             <div className="card-body">
-              <h5 className="card-title mb-1">Total Transactions</h5>
-              <h1 className="mt-1 mb-3">{(stats?.totalPurchases || 0) + (stats?.totalSales || 0)}</h1>
-              <div className="mb-0 text-muted">
-                <Activity className="align-middle me-1" /> {stats?.totalPurchases} purchases &middot; {stats?.totalSales} sales
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gem-text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>Total Transactions</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "var(--gem-text)", lineHeight: 1.2, marginBottom: 12 }}>
+                {(stats?.totalPurchases || 0) + (stats?.totalSales || 0)}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--gem-text-secondary)" }}>
+                <Activity size={16} /> {stats?.totalPurchases} purchases &middot; {stats?.totalSales} sales
               </div>
             </div>
           </div>
@@ -145,72 +156,76 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="row">
         {/* Pie Chart */}
-        <div className="col-12 col-md-6 d-flex">
-          <div className="card flex-fill w-100">
+        <div className="col-12 col-md-6" style={{ marginBottom: 24 }}>
+          <div className="card" style={{ height: "100%" }}>
             <div className="card-header">
-              <h5 className="card-title mb-0">Stock by Status</h5>
+              <h5 className="card-title">Stock by Status</h5>
             </div>
-            <div className="card-body d-flex">
-              <div className="align-self-center w-100">
-                {statusData.length > 0 ? (
-                  <div className="py-3">
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie
-                          data={statusData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={90}
-                          paddingAngle={3}
-                          dataKey="value"
-                        >
-                          {statusData.map((entry: any, index: number) => (
-                            <Cell key={index} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted">No data yet.</div>
-                )}
-              </div>
+            <div className="card-body">
+              {statusData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={95}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {statusData.map((entry: any, index: number) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--gem-paper)",
+                        border: "1px solid var(--gem-border)",
+                        borderRadius: 8,
+                        fontSize: 13,
+                        boxShadow: "var(--gem-shadow)",
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 12 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ textAlign: "center", color: "var(--gem-text-secondary)", padding: 40 }}>No data yet.</div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Recent Ledger */}
-        <div className="col-12 col-md-6 d-flex">
-          <div className="card flex-fill w-100">
+        <div className="col-12 col-md-6" style={{ marginBottom: 24 }}>
+          <div className="card" style={{ height: "100%" }}>
             <div className="card-header">
-              <h5 className="card-title mb-0"><BookOpen className="align-middle me-2" size={18} /> Recent Ledger Activity</h5>
+              <h5 className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <BookOpen size={16} /> Recent Ledger Activity
+              </h5>
             </div>
-            <div className="card-body">
-              <ul className="list-group list-group-flush">
-                {(stats?.recentLedger || []).length === 0 ? (
-                  <li className="list-group-item text-center text-muted">No activity yet</li>
-                ) : (
-                  (stats?.recentLedger || []).slice(0, 6).map((entry: any) => (
-                    <li key={entry.id} className="list-group-item px-0 pb-2 mb-2 border-bottom">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <strong>{entry.lot?.lotNo || "—"}</strong>
-                          <div className="text-muted small">
-                            {entry.fromLocation} &rarr; {entry.toLocation}
-                          </div>
-                        </div>
-                        <div className="text-end">
-                          <div>{entry.weight} {entry.weightUnit}</div>
-                          <div className="text-muted small">{formatDate(entry.createdAt)}</div>
-                        </div>
+            <div className="card-body" style={{ padding: "12px 20px" }}>
+              {(stats?.recentLedger || []).length === 0 ? (
+                <div style={{ textAlign: "center", color: "var(--gem-text-secondary)", padding: 40 }}>No activity yet</div>
+              ) : (
+                (stats?.recentLedger || []).slice(0, 6).map((entry: any) => (
+                  <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--gem-border)" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13.5 }}>{entry.lot?.lotNo || "—"}</div>
+                      <div style={{ fontSize: 12, color: "var(--gem-text-secondary)" }}>
+                        {entry.fromLocation} &rarr; {entry.toLocation}
                       </div>
-                    </li>
-                  ))
-                )}
-              </ul>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{entry.weight} {entry.weightUnit}</div>
+                      <div style={{ fontSize: 12, color: "var(--gem-text-secondary)" }}>{formatDate(entry.createdAt)}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -219,66 +234,47 @@ export default function DashboardPage() {
       {/* Live Stock Summary */}
       <div className="row">
         <div className="col-12">
-          <div className="card flex-fill">
+          <div className="card">
             <div className="card-header">
-              <h5 className="card-title mb-0"><Package className="align-middle me-2" size={18} /> Live Stock Summary</h5>
+              <h5 className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Package size={16} /> Live Stock Summary
+              </h5>
             </div>
-            <table className="table table-hover my-0">
-              <thead>
-                <tr>
-                  <th>Category / Status</th>
-                  <th>Total Weight</th>
-                  <th>Pieces</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats?.subLotsByStatus?.length === 0 ? (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead>
                   <tr>
-                    <td colSpan={3} className="text-center text-muted">No stock data available</td>
+                    <th>Category / Status</th>
+                    <th>Total Weight</th>
+                    <th>Pieces</th>
                   </tr>
-                ) : (
-                  stats?.subLotsByStatus?.map((s: any) => (
-                    <tr key={s.status}>
-                      <td>
-                        <span 
-                          className="badge"
-                          style={{
-                            backgroundColor: STATUS_COLORS[s.status] || "#94a3b8",
-                          }}
-                        >
-                          {getStatusLabel(s.status)}
-                        </span>
-                      </td>
-                      <td><strong>{s._sum?.weight || 0}</strong> <span className="text-muted small ms-1">GM</span></td>
-                      <td><strong>{s._sum?.pieces || 0}</strong></td>
+                </thead>
+                <tbody>
+                  {stats?.subLotsByStatus?.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: "center", color: "var(--gem-text-secondary)", padding: 32 }}>No stock data available</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    stats?.subLotsByStatus?.map((s: any) => (
+                      <tr key={s.status}>
+                        <td>
+                          <span
+                            className="badge"
+                            style={{ backgroundColor: STATUS_COLORS[s.status] || "#94a3b8", color: "#fff" }}
+                          >
+                            {getStatusLabel(s.status)}
+                          </span>
+                        </td>
+                        <td><strong>{s._sum?.weight || 0}</strong> <span style={{ color: "var(--gem-text-secondary)", fontSize: 12, marginLeft: 4 }}>GM</span></td>
+                        <td><strong>{s._sum?.pieces || 0}</strong></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ title, value, icon, color }: {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color: "primary" | "success" | "warning" | "info" | "danger";
-}) {
-  return (
-    <div className="card flex-fill mb-3 shadow-sm border-0">
-      <div className="card-body p-2 p-sm-3">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <h6 className="card-title text-muted mb-0" style={{ fontSize: "0.80rem" }}>{title}</h6>
-          <div className={`text-${color}`}>
-            {icon}
-          </div>
-        </div>
-        <h4 className="mt-1 mb-0 fw-bold">{value}</h4>
       </div>
     </div>
   );
