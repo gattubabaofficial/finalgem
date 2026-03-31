@@ -6,7 +6,8 @@ import {
   ArrowLeft, Edit, Save, Trash2, 
   Loader2, AlertCircle, CheckCircle2,
   Calendar, User, ChevronRight,
-  Scale, Layers, DollarSign, Activity
+  Scale, Layers, DollarSign, Activity,
+  Info, Hash, Ruler, Box
 } from "lucide-react";
 import { formatINR, formatDate } from "@/lib/utils";
 import Link from "next/link";
@@ -119,13 +120,11 @@ export default function ManufacturingDetailPage({ params }: { params: Promise<Pa
     }
   }
 
-  if (loading) {
-    return (
-      <div className="container-fluid p-4 d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
 
   const num = (v: string) => parseFloat(v || "0");
   const totalCostCalc = num(form.labourCost) + num(form.otherCost);
@@ -146,7 +145,7 @@ export default function ManufacturingDetailPage({ params }: { params: Promise<Pa
               <ChevronRight className="text-white text-opacity-50" size={16} />
               <span className="text-white text-opacity-80 small fw-bold tracking-wide">Manufacturing Detail</span>
             </div>
-            <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-md">
+            <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-sm">
               {form.processType || "Process Details"}
             </h3>
           </div>
@@ -193,179 +192,240 @@ export default function ManufacturingDetailPage({ params }: { params: Promise<Pa
       </div>
 
       {error && (
-        <div className="alert alert-danger p-3 d-flex align-items-center mb-4 shadow-sm border-0">
-          <AlertCircle className="w-5 h-5 me-2 flex-shrink-0" /> {error}
+        <div className="alert alert-danger border-0 shadow-sm rounded-4 p-4 d-flex align-items-center gap-3 mb-5 mx-4 fade show">
+          <div className="bg-danger bg-opacity-10 p-2 rounded-3 text-danger">
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <div className="fw-bold">Action Required</div>
+            <div className="small opacity-75">{error}</div>
+          </div>
         </div>
       )}
+      
       {success && (
-        <div className="alert alert-success p-3 d-flex align-items-center mb-4 shadow-sm border-0">
-          <CheckCircle2 className="w-5 h-5 me-2 flex-shrink-0" /> {success}
+        <div className="alert alert-success border-0 shadow-sm rounded-4 p-4 d-flex align-items-center gap-3 mb-5 mx-4 fade show">
+          <div className="bg-success bg-opacity-10 p-2 rounded-3 text-success">
+            <CheckCircle2 size={24} />
+          </div>
+          <div>
+            <div className="fw-bold">Success</div>
+            <div className="small opacity-75">{success}</div>
+          </div>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="row g-4">
-        {/* Left Column - Core Details */}
-        <div className="col-12 col-xl-8">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-header bg-white border-bottom py-3 d-flex align-items-center">
-              <Activity className="w-5 h-5 text-primary me-2" />
-              <h5 className="card-title fw-bold mb-0">Manufacturing Information</h5>
-            </div>
-            <div className="card-body p-4">
-              <form id="editForm" onSubmit={handleSave} className="row g-4">
-                
-                {/* Process Details */}
-                <div className="col-12">
-                  <h6 className="fw-bold text-muted text-uppercase mb-3 small d-flex align-items-center">
-                    Process Details
-                  </h6>
-                  <div className="row g-3">
-                    <Field label="Sub Lot No" className="col-md-6 text-primary font-monospace fw-bold">
-                      {isEditMode ? 
-                        <input required value={form.subLotNo} onChange={(e) => f("subLotNo", e.target.value)} className="form-control font-monospace border-primary" /> 
-                        : <div className="p-2 bg-light rounded bg-opacity-50">{form.subLotNo || "—"}</div>}
+      <form id="editForm" onSubmit={handleSave} className="px-4">
+        <div className="row g-4">
+          <div className="col-lg-8">
+            <div className="card border-0 shadow-premium rounded-5 overflow-hidden mb-4 bg-white">
+              <div className="card-body p-5">
+                <div className="d-flex align-items-center gap-3 mb-5">
+                  <div className="p-3 bg-primary-subtle rounded-4 text-primary shadow-sm">
+                    <Info size={24} />
+                  </div>
+                  <h4 className="fw-extrabold m-0 text-navy uppercase tracking-widest">Process Metadata</h4>
+                </div>
+
+                <div className="row g-5">
+                  <div className="col-md-6">
+                    <Field label="Sub Lot Identifier" icon={<Hash size={18} />}>
+                      <input 
+                        readOnly={!isEditMode}
+                        value={form.subLotNo} 
+                        onChange={(e) => f("subLotNo", e.target.value)} 
+                        className={`form-control-minimal fw-bold fs-5 ${isEditMode ? 'form-control-edit' : ''}`} 
+                      />
                     </Field>
-                    <Field label="Date" className="col-md-6">
-                      {isEditMode ? 
-                        <input required type="date" value={form.date} onChange={(e) => f("date", e.target.value)} className="form-control" />
-                        : <div className="p-2 bg-light rounded d-flex align-items-center"><Calendar className="w-4 h-4 me-2 text-muted" />{formatDate(form.date)}</div>}
+                  </div>
+                  <div className="col-md-6">
+                    <Field label="Issue Date" icon={<Calendar size={18} />}>
+                      <input 
+                        type={isEditMode ? "date" : "text"}
+                        readOnly={!isEditMode}
+                        value={form.date} 
+                        onChange={(e) => f("date", e.target.value)} 
+                        className={`form-control-minimal fw-semibold ${isEditMode ? 'form-control-edit' : ''}`} 
+                      />
                     </Field>
-                    <Field label="Issued To" className="col-md-6">
-                      {isEditMode ? 
-                        <input required value={form.issuedTo} onChange={(e) => f("issuedTo", e.target.value)} className="form-control" />
-                        : <div className="p-2 bg-light rounded d-flex align-items-center"><User className="w-4 h-4 me-2 text-muted" />{form.issuedTo || "—"}</div>}
+                  </div>
+                  <div className="col-md-6">
+                    <Field label="Issued To (Personnel)" icon={<User size={18} />}>
+                      <input 
+                        readOnly={!isEditMode}
+                        value={form.issuedTo} 
+                        onChange={(e) => f("issuedTo", e.target.value)} 
+                        className={`form-control-minimal text-dark fw-medium ${isEditMode ? 'form-control-edit' : ''}`} 
+                      />
                     </Field>
-                    <Field label="Process Type" className="col-md-6">
-                      {isEditMode ? 
-                        <input value={form.processType} onChange={(e) => f("processType", e.target.value)} className="form-control" placeholder="e.g. Cutting, Polishing" />
-                        : <div className="p-2 bg-light rounded">{form.processType || "—"}</div>}
+                  </div>
+                  <div className="col-md-6">
+                    <Field label="Operation Type" icon={<Activity size={18} />}>
+                      <input 
+                        readOnly={!isEditMode}
+                        value={form.processType} 
+                        onChange={(e) => f("processType", e.target.value)} 
+                        className={`form-control-minimal text-indigo fw-bold ${isEditMode ? 'form-control-edit' : ''}`} 
+                        placeholder="e.g. Cutting, Polishing..."
+                      />
                     </Field>
                   </div>
                 </div>
-
-                <div className="col-12"><hr className="text-secondary opacity-25" /></div>
-
-                {/* Specs Section */}
-                <div className="col-12">
-                  <h6 className="fw-bold text-muted text-uppercase mb-3 small d-flex align-items-center">
-                    Issued Material Specs
-                  </h6>
-                  <div className="row g-3">
-                    <Field label="Weight Unit" className="col-md-4">
-                      {isEditMode ? 
-                        <select value={form.weightUnit} onChange={(e) => f("weightUnit", e.target.value)} className="form-select">
-                          {WEIGHT_UNITS.map(u => <option key={u}>{u}</option>)}
-                        </select>
-                        : <div className="p-2 bg-light rounded">{form.weightUnit}</div>}
-                    </Field>
-                    <Field label="Weight" className="col-md-4">
-                      {isEditMode ? 
-                        <input type="number" step="0.001" value={form.weight} onChange={(e) => f("weight", e.target.value)} className="form-control" />
-                        : <div className="p-2 bg-light rounded d-flex align-items-center text-primary fw-bold"><Scale className="w-4 h-4 me-2 text-muted" />{form.weight} {form.weightUnit}</div>}
-                    </Field>
-                    <Field label="Pieces" className="col-md-4">
-                      {isEditMode ? 
-                        <input type="number" value={form.pieces} onChange={(e) => f("pieces", e.target.value)} className="form-control" />
-                        : <div className="p-2 bg-light rounded d-flex align-items-center"><Layers className="w-4 h-4 me-2 text-muted" />{form.pieces || "—"}</div>}
-                    </Field>
-                    
-                    <Field label="Shape" className="col-md-3">
-                      {isEditMode ? <input value={form.shape} onChange={(e) => f("shape", e.target.value)} className="form-control" /> : <div className="p-2 bg-light rounded">{form.shape || "—"}</div>}
-                    </Field>
-                    <Field label="Size" className="col-md-3">
-                      {isEditMode ? <input value={form.size} onChange={(e) => f("size", e.target.value)} className="form-control" /> : <div className="p-2 bg-light rounded">{form.size || "—"}</div>}
-                    </Field>
-                    <Field label="Lines" className="col-md-3">
-                      {isEditMode ? <input type="number" value={form.lines} onChange={(e) => f("lines", e.target.value)} className="form-control" /> : <div className="p-2 bg-light rounded">{form.lines || "—"}</div>}
-                    </Field>
-                    <Field label="Length" className="col-md-3">
-                      {isEditMode ? <input type="number" step="0.01" value={form.length} onChange={(e) => f("length", e.target.value)} className="form-control" /> : <div className="p-2 bg-light rounded">{form.length || "—"}</div>}
-                    </Field>
-                    <Field label="Output Quantity (Wait)" className="col-md-6 mt-3">
-                      {isEditMode ? <input type="number" value={form.outputQuantity} onChange={(e) => f("outputQuantity", e.target.value)} className="form-control" placeholder="Finished Pieces" /> : <div className="p-2 bg-success bg-opacity-10 text-success fw-bold rounded">{form.outputQuantity || "—"}</div>}
-                    </Field>
-                  </div>
-                </div>
-
-              </form>
-            </div>
-            {isEditMode && (
-              <div className="card-footer bg-light border-top p-4 d-flex justify-content-end">
-                <button type="submit" form="editForm" disabled={saving} className="btn btn-primary shadow-sm px-4 d-flex align-items-center gap-2">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
               </div>
-            )}
+            </div>
+
+            <div className="card h-100 border-0 shadow-premium rounded-5 bg-emerald-subtle-25">
+              <div className="card-body p-5">
+                <div className="d-flex align-items-center gap-3 mb-5">
+                  <div className="p-3 bg-emerald rounded-4 text-white shadow-sm">
+                    <Scale size={24} />
+                  </div>
+                  <h4 className="fw-extrabold m-0 text-emerald uppercase tracking-widest">Material Specifications</h4>
+                </div>
+                <div className="row g-4">
+                  <div className="col-md-4">
+                    <ModernSmallField label="Input Weight" value={form.weight} unit={form.weightUnit} isEdit={isEditMode} onChange={(v) => f("weight", v)} accent="emerald" />
+                  </div>
+                  <div className="col-md-4">
+                    <ModernSmallField label="Input Pieces" value={form.pieces} isEdit={isEditMode} onChange={(v) => f("pieces", v)} accent="emerald" />
+                  </div>
+                  <div className="col-md-4">
+                    <ModernSmallField label="Final Yield (Output)" value={form.outputQuantity} isEdit={isEditMode} onChange={(v) => f("outputQuantity", v)} accent="emerald" />
+                  </div>
+                  <div className="col-md-3">
+                    <ModernBadgeStat label="Form/Shape" value={form.shape} isEdit={isEditMode} field="shape" onChange={f} />
+                  </div>
+                  <div className="col-md-3">
+                    <ModernBadgeStat label="Size Ref" value={form.size} isEdit={isEditMode} field="size" onChange={f} />
+                  </div>
+                  <div className="col-md-3">
+                    <ModernBadgeStat label="Strand Count" value={form.lines} isEdit={isEditMode} field="lines" onChange={f} />
+                  </div>
+                  <div className="col-md-3">
+                    <ModernBadgeStat label="Total Length" value={form.length} isEdit={isEditMode} field="length" onChange={f} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-lg-4">
+            <div className="card border-0 shadow-premium rounded-5 bg-dark text-white overflow-hidden sticky-top" style={{ top: '2rem' }}>
+              <div className="bg-primary-gradient p-5 text-center">
+                <div className="small font-mono opacity-75 uppercase mb-2 tracking-widest">Manufacturing Audit</div>
+                <div className="h1 fw-extrabold text-amber-500 m-0 letter-tight">{formatINR(totalCostCalc)}</div>
+              </div>
+              <div className="card-body p-5 bg-navy">
+                <div className="space-y-4">
+                  <ModernStatRow label="Personnel/Labour" value={parseFloat(form.labourCost || "0").toFixed(2)} unit="₹" isEdit={isEditMode} field="labourCost" onChange={f} />
+                  <ModernStatRow label="Overheads/Other" value={parseFloat(form.otherCost || "0").toFixed(2)} unit="₹" isEdit={isEditMode} field="otherCost" onChange={f} />
+                  
+                  <div className="p-4 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-10 text-center mt-5">
+                    <div className="small opacity-50 uppercase mb-1 fw-bold tracking-widest">Material Grade</div>
+                    <div className="h4 fw-extrabold m-0 text-white">{form.weightUnit} Standard</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </form>
 
-        {/* Right Column - Costings */}
-        <div className="col-12 col-xl-4">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-header bg-white border-bottom py-3 d-flex align-items-center">
-              <DollarSign className="w-5 h-5 text-success me-2" />
-              <h5 className="card-title fw-bold mb-0">Costings</h5>
-            </div>
-            <div className="card-body p-4 bg-light bg-opacity-50">
-              <div className="space-y-4">
-                <Field label="Labour Cost">
-                  {isEditMode ? 
-                    <div className="input-group">
-                      <span className="input-group-text bg-white border-end-0 text-muted">₹</span>
-                      <input type="number" step="0.01" value={form.labourCost} onChange={(e) => f("labourCost", e.target.value)} className="form-control border-start-0 ps-0" />
-                    </div>
-                    : <div className="d-flex justify-content-end align-items-center p-3 bg-white border border-secondary border-opacity-10 rounded fw-semibold text-dark fs-5 shadow-sm">{formatINR(num(form.labourCost))}</div>}
-                </Field>
-                <Field label="Other Cost">
-                  {isEditMode ? 
-                    <div className="input-group">
-                      <span className="input-group-text bg-white border-end-0 text-muted">₹</span>
-                      <input type="number" step="0.01" value={form.otherCost} onChange={(e) => f("otherCost", e.target.value)} className="form-control border-start-0 ps-0" />
-                    </div>
-                    : <div className="d-flex justify-content-end align-items-center p-3 bg-white border border-secondary border-opacity-10 rounded fw-semibold text-dark fs-5 shadow-sm">{formatINR(num(form.otherCost))}</div>}
-                </Field>
-
-                <hr className="my-4 text-secondary opacity-25" />
-
-                <div className="p-4 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 d-flex flex-column align-items-end shadow-sm">
-                  <span className="text-muted small fw-bold text-uppercase mb-1" style={{ letterSpacing: '0.05em' }}>Total Mfg Cost</span>
-                  <span className="text-primary fw-bolder" style={{ fontSize: '1.75rem', lineHeight: '1' }}>
-                    {formatINR(totalCostCalc)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-      </div>
       <style jsx>{`
         .bg-light { background-color: #f8fafc !important; }
         .text-navy { color: #0f172a !important; }
+        .text-emerald { color: #10b981 !important; }
+        .bg-emerald { background-color: #10b981 !important; }
+        .bg-emerald-subtle-25 { background-color: rgba(16, 185, 129, 0.04) !important; }
         .bg-navy { background-color: #0f172a !important; }
         .bg-primary-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); }
-        .btn-indigo { background-color: #4f46e5; color: white; }
-        .btn-indigo:hover { background-color: #4338ca; color: white; transform: translateY(-2px); }
         .shadow-premium { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02) !important; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .letter-tight { letter-spacing: -0.025em; }
+        .form-control-minimal { background: transparent; border: none; padding: 0.5rem 0; color: #1e293b; width: 100%; transition: all 0.2s; }
+        .form-control-minimal:focus { outline: none; }
+        .form-control-edit { background: #f1f5f9 !important; border: 1px solid #cbd5e1 !important; padding: 0.75rem 1rem !important; border-radius: 12px !important; }
+        .form-control-edit:focus { background: white !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important; }
         .hover-translate-y:hover { transform: translateY(-3px); }
         .hover-scale:hover { transform: scale(1.05); }
         .rounded-5 { border-radius: 2rem !important; }
         .rounded-4 { border-radius: 1rem !important; }
+        .space-y-4 > * + * { margin-top: 1rem; }
         .fw-extrabold { font-weight: 800; }
-        .drop-shadow-md { filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.07)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.06)); }
+        .text-amber-500 { color: #f59e0b !important; }
       `}</style>
     </div>
-  </div>
-);
+  );
 }
 
-function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+function Field({ label, children, icon }: { label: string; children: React.ReactNode; icon: React.ReactNode }) {
   return (
-    <div className={className}>
-      <label className="form-label mb-2 text-muted fw-semibold small" style={{ letterSpacing: '0.02em' }}>{label}</label>
+    <div className="mb-2">
+      <label className="text-secondary small d-flex align-items-center gap-2 mb-2 fw-bold tracking-wider uppercase opacity-80">
+        <span className="text-primary">{icon}</span> {label}
+      </label>
       {children}
+    </div>
+  );
+}
+
+function ModernStatRow({ label, value, unit, isEdit, field, onChange }: { label: string; value: string; unit: string; isEdit: boolean; field: string; onChange: any }) {
+  return (
+    <div className="d-flex justify-content-between align-items-center py-2">
+      <span className="text-white text-opacity-60 fw-semibold small">{label}</span>
+      {isEdit ? (
+        <div className="input-group input-group-sm w-50">
+          <span className="input-group-text bg-white bg-opacity-10 border-0 text-white font-mono small">{unit}</span>
+          <input 
+            type="number" 
+            className="form-control bg-white bg-opacity-10 border-0 text-white px-3" 
+            value={value} 
+            onChange={(e) => onChange(field, e.target.value)} 
+          />
+        </div>
+      ) : (
+        <span className="text-white fw-extrabold fs-5">{value} <span className="small fw-medium text-white text-opacity-40">{unit}</span></span>
+      )}
+    </div>
+  );
+}
+
+function ModernBadgeStat({ label, value, isEdit, field, onChange }: { label: string; value: string; isEdit: boolean; field: string; onChange: any }) {
+  return (
+    <div className="bg-white p-3 rounded-4 transition-all hover-translate-y h-100 shadow-sm border border-light">
+      <div className="text-secondary small fw-bold uppercase tracking-widest mb-2" style={{ fontSize: '0.6rem' }}>{label}</div>
+      {isEdit ? (
+        <input 
+          className="form-control form-control-sm bg-light border-0 border-bottom border-primary-subtle text-navy p-0 rounded-0 fw-bold"
+          value={value}
+          onChange={(e) => onChange(field, e.target.value)}
+        />
+      ) : (
+        <div className="text-navy fw-extrabold">{value || "—"}</div>
+      )}
+    </div>
+  );
+}
+
+function ModernSmallField({ label, value, unit, isEdit, onChange, accent }: { label: string; value: string; unit?: string; isEdit: boolean; onChange: (v: string) => void; accent: 'emerald' | 'rose' }) {
+  const textColorClass = accent === 'emerald' ? 'text-emerald' : 'text-rose';
+
+  return (
+    <div className="bg-white p-4 rounded-4 shadow-sm h-100 border border-white">
+      <div className="text-secondary small fw-bold uppercase tracking-widest mb-2 font-mono" style={{ fontSize: '0.55rem' }}>{label}</div>
+      {isEdit ? (
+        <div className="input-group input-group-sm border-bottom border-secondary-subtle">
+          <input 
+            type="number" 
+            className="form-control border-0 bg-transparent text-navy p-0 fw-bold" 
+            value={value} 
+            onChange={(e) => onChange(e.target.value)} 
+          />
+          {unit && <span className="input-group-text border-0 bg-transparent text-muted small">{unit}</span>}
+        </div>
+      ) : (
+        <div className={`fw-extrabold fs-4 ${textColorClass}`}>{value || "0"}<span className="small opacity-50 fw-medium ms-1">{unit}</span></div>
+      )}
     </div>
   );
 }

@@ -2,19 +2,23 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useRole } from "@/hooks/useRole";
 import { 
   ArrowLeft, Edit, Save, Trash2, 
   Loader2, AlertCircle, CheckCircle2,
-  Calendar, User, Tag, Receipt,
-  Activity, Info, ChevronRight
+  Calendar, User, ChevronRight,
+  Scale, Layers, Package, Info, Hash, Tag,
+  Layout, Ruler, Box, Activity, Receipt,
+  DollarSign, ShoppingCart, TrendingUp
 } from "lucide-react";
-import { formatINR, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
+import { formatINR, formatDate } from "@/lib/utils";
 import Link from "next/link";
+import { useRole } from "@/hooks/useRole";
 
 interface Params {
   id: string;
 }
+
+const STATUS_OPTIONS = ["PENDING", "COMPLETED", "CANCELLED", "REJECTED"];
 
 export default function SaleDetailPage({ params }: { params: Promise<Params> }) {
   const { id } = use(params);
@@ -27,44 +31,43 @@ export default function SaleDetailPage({ params }: { params: Promise<Params> }) 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [data, setData] = useState<any>(null);
   
   const [form, setForm] = useState({
     lotNo: "", date: "", customer: "", billNo: "",
-    salePrice: "", discount: "0", tax: "0", netSale: "0", finalBillAmount: "0",
-    itemName: "", descriptionRef: "", status: "SOLD",
-    weight: "", weightUnit: "G", pieces: "", shape: "", size: "", lines: "", length: ""
+    weight: "", weightUnit: "G", pieces: "", size: "",
+    shape: "", lines: "", lineLength: "", itemName: "",
+    baseSale: "", otherSale: "", netSale: "", status: "COMPLETED"
   });
 
   const fetchSale = async () => {
     try {
       setLoading(true);
       const r = await fetch(`/api/sales/${id}`);
-      if (!r.ok) throw new Error("Failed to fetch sale record");
-      const data = await r.json();
+      if (!r.ok) throw new Error("Failed to fetch sale");
+      const d = await r.json();
+      setData(d);
       
       setForm({
-        lotNo: data.lot?.lotNumber || "",
-        date: data.date ? data.date.slice(0, 10) : "",
-        customer: data.customerName || data.customer || "",
-        billNo: data.billNo || "",
-        salePrice: data.salePrice?.toString() || "",
-        discount: data.discount?.toString() || "0",
-        tax: data.tax?.toString() || "0",
-        netSale: data.netSale?.toString() || "0",
-        finalBillAmount: data.finalBillAmount?.toString() || "0",
-        itemName: data.itemName || "",
-        descriptionRef: data.descriptionRef || "",
-        status: data.lot?.status || "SOLD",
-        weight: data.weight?.toString() || "",
-        weightUnit: data.weightUnit || "G",
-        pieces: data.pieces?.toString() || "",
-        shape: data.shape || "",
-        size: data.size || "",
-        lines: data.lines?.toString() || "",
-        length: data.length?.toString() || ""
+        lotNo: d.lotNo || "",
+        date: d.date ? d.date.slice(0, 10) : "",
+        customer: d.customer || "",
+        billNo: d.billNo || "",
+        weight: d.weight?.toString() || "",
+        weightUnit: d.weightUnit || "G",
+        pieces: d.pieces?.toString() || "",
+        size: d.size || "",
+        shape: d.shape || "",
+        lines: d.lines?.toString() || "",
+        lineLength: d.lineLength?.toString() || "",
+        itemName: d.itemName || "",
+        baseSale: d.baseSale?.toString() || "0",
+        otherSale: d.otherSale?.toString() || "0",
+        netSale: d.netSale?.toString() || "0",
+        status: d.status || "COMPLETED"
       });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -72,15 +75,10 @@ export default function SaleDetailPage({ params }: { params: Promise<Params> }) 
 
   useEffect(() => { fetchSale(); }, [id]);
 
-  const f = (k: string, v: string) => setForm((p) => {
+  const f = (k: string, v: string) => setForm(p => {
     const next = { ...p, [k]: v };
-    if (k === "salePrice" || k === "discount" || k === "tax") {
-      const sp = parseFloat(next.salePrice || "0");
-      const ds = parseFloat(next.discount || "0");
-      const tx = parseFloat(next.tax || "0");
-      const ns = sp - ds;
-      next.netSale = ns.toString();
-      next.finalBillAmount = (ns + tx).toString();
+    if (k === "baseSale" || k === "otherSale") {
+      next.netSale = (parseFloat(next.baseSale || "0") + parseFloat(next.otherSale || "0")).toString();
     }
     return next;
   });
@@ -90,45 +88,46 @@ export default function SaleDetailPage({ params }: { params: Promise<Params> }) 
     setError(""); setSuccess(""); setSaving(true);
     try {
       const r = await fetch(`/api/sales/${id}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          salePrice: parseFloat(form.salePrice),
-          discount: parseFloat(form.discount),
-          tax: parseFloat(form.tax),
-          weight: parseFloat(form.weight || "0"),
+          weight: parseFloat(form.weight),
           pieces: form.pieces ? parseInt(form.pieces) : undefined,
           lines: form.lines ? parseInt(form.lines) : undefined,
-          length: form.length ? parseFloat(form.length) : undefined,
+          lineLength: form.lineLength ? parseFloat(form.lineLength) : undefined,
+          baseSale: parseFloat(form.baseSale),
+          otherSale: parseFloat(form.otherSale),
+          netSale: parseFloat(form.netSale),
         }),
       });
-      if (!r.ok) throw new Error("Failed to update sale");
+      if (!r.ok) throw new Error("Update failed");
       setSuccess("Sale updated successfully!");
       setIsEditMode(false);
       fetchSale();
-    } catch (err: any) {
-      setError(err.message);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e: any) {
+      setError(e.message);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete() {
-    if (!confirm("Are you sure you want to delete this sale? This will revert the sub-lot status to READY.")) return;
+    if (!confirm("Are you sure?")) return;
     setDeleting(true);
     try {
       const r = await fetch(`/api/sales/${id}`, { method: "DELETE" });
-      if (!r.ok) throw new Error("Failed to delete sale");
+      if (!r.ok) throw new Error("Delete failed");
       router.push("/sales");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (e: any) {
+      setError(e.message);
       setDeleting(false);
     }
   }
 
   if (loading) return (
-    <div className="container-fluid p-4 d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+    <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
@@ -144,13 +143,13 @@ export default function SaleDetailPage({ params }: { params: Promise<Params> }) 
           <div>
             <div className="d-flex align-items-center gap-2 mb-1">
               <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm border border-white border-opacity-20" style={{ fontSize: '0.75rem' }}>
-                {form.lotNo}
+                Lot #{form.lotNo}
               </span>
               <ChevronRight className="text-white text-opacity-50" size={16} />
               <span className="text-white text-opacity-80 small fw-bold tracking-wide">Sale Detail</span>
             </div>
-            <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-md">
-              {form.itemName || "Sale Transaction"}
+            <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-sm">
+              {form.customer || "Sale Transaction"}
             </h3>
           </div>
         </div>
@@ -162,7 +161,7 @@ export default function SaleDetailPage({ params }: { params: Promise<Params> }) 
                 onClick={() => setIsEditMode(true)}
                 className="btn bg-white text-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-extrabold border-0 transition-all hover-scale"
               >
-                <Edit size={18} /> Edit Entry
+                <Edit size={18} /> Edit Sale
               </button>}
               {isAdmin && <button 
                 onClick={handleDelete}
@@ -195,143 +194,251 @@ export default function SaleDetailPage({ params }: { params: Promise<Params> }) 
         </div>
       </div>
 
-      {error && <div className="alert alert-danger mb-4 shadow-sm border-0">{error}</div>}
-      {success && <div className="alert alert-success mb-4 shadow-sm border-0">{success}</div>}
-
-      <div className="row g-4 font-inter">
-        {/* Left Column - Details */}
-        <div className="col-12 col-xl-8">
-          <div className="card shadow-sm border-0 h-100 rounded-4 overflow-hidden">
-            <div className="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
-              <Activity className="w-5 h-5 text-primary" />
-              <h5 className="card-title fw-bold mb-0">Transaction Information</h5>
-              <div className="ms-auto">
-                <span className={`badge bg-${getStatusColor(form.status)} text-white px-2 py-1 rounded-pill`}>
-                  {getStatusLabel(form.status)}
-                </span>
-              </div>
-            </div>
-            <div className="card-body p-4">
-              <form id="editForm" onSubmit={handleUpdate} className="row g-4">
-                <div className="col-md-6">
-                  <Field label="Customer Name" icon={<User className="w-4 h-4" />}>
-                    {isEditMode ? <input value={form.customer} onChange={(e) => f("customer", e.target.value)} className="form-control" /> : <div className="p-3 bg-light rounded text-dark fw-bold">{form.customer || "—"}</div>}
-                  </Field>
-                </div>
-                <div className="col-md-6">
-                  <Field label="Bill Number" icon={<Receipt className="w-4 h-4" />}>
-                    {isEditMode ? <input value={form.billNo} onChange={(e) => f("billNo", e.target.value)} className="form-control" /> : <div className="p-3 bg-light rounded text-dark fw-bold">{form.billNo || "—"}</div>}
-                  </Field>
-                </div>
-                <div className="col-md-6">
-                  <Field label="Sale Date" icon={<Calendar className="w-4 h-4" />}>
-                    {isEditMode ? <input type="date" value={form.date} onChange={(e) => f("date", e.target.value)} className="form-control" /> : <div className="p-3 bg-light rounded">{formatDate(form.date)}</div>}
-                  </Field>
-                </div>
-                <div className="col-md-6">
-                  <Field label="Item Name" icon={<Tag className="w-4 h-4" />}>
-                    {isEditMode ? <input value={form.itemName} onChange={(e) => f("itemName", e.target.value)} className="form-control" /> : <div className="p-3 bg-light rounded">{form.itemName || "—"}</div>}
-                  </Field>
-                </div>
-
-                <div className="col-12"><hr className="opacity-10" /></div>
-
-                <div className="col-12">
-                  <h6 className="fw-bold text-muted text-uppercase mb-3 small">Product Specs</h6>
-                  <div className="row g-3">
-                    <Field label="Weight" className="col-md-4">
-                      <div className="p-3 bg-light rounded d-flex justify-content-between align-items-center">
-                        <span className="fw-bold fs-5">{form.weight} <small className="text-muted fw-normal">{form.weightUnit}</small></span>
-                      </div>
-                    </Field>
-                    <Field label="Pieces" className="col-md-4">
-                      <div className="p-3 bg-light rounded text-dark fw-bold fs-5">{form.pieces || "—"}</div>
-                    </Field>
-                    <Field label="Details" className="col-md-4">
-                      <div className="p-3 bg-light rounded text-muted small">
-                        {form.shape} {form.size} {form.lines ? `| ${form.lines} lines` : ""}
-                      </div>
-                    </Field>
-                  </div>
-                </div>
-
-                <div className="col-12">
-                  <Field label="Description / Notes" icon={<Info className="w-4 h-4" />}>
-                    {isEditMode ? <textarea rows={3} value={form.descriptionRef} onChange={(e) => f("descriptionRef", e.target.value)} className="form-control" /> : <div className="p-3 bg-light rounded text-muted">{form.descriptionRef || "No notes."}</div>}
-                  </Field>
-                </div>
-              </form>
-            </div>
+      {error && (
+        <div className="alert alert-danger border-0 shadow-sm rounded-4 p-4 d-flex align-items-center gap-3 mb-5 mx-4 fade show">
+          <div className="bg-danger bg-opacity-10 p-2 rounded-3 text-danger">
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <div className="fw-bold">Action Required</div>
+            <div className="small opacity-75">{error}</div>
           </div>
         </div>
+      )}
+      
+      {success && (
+        <div className="alert alert-success border-0 shadow-sm rounded-4 p-4 d-flex align-items-center gap-3 mb-5 mx-4 fade show">
+          <div className="bg-success bg-opacity-10 p-2 rounded-3 text-success">
+            <CheckCircle2 size={24} />
+          </div>
+          <div>
+            <div className="fw-bold">Success</div>
+            <div className="small opacity-75">{success}</div>
+          </div>
+        </div>
+      )}
 
-        {/* Right Column - Financials */}
-        <div className="col-12 col-xl-4">
-          <div className="card shadow-sm border-0 h-100 rounded-4 overflow-hidden">
-            <div className="card-header bg-white border-bottom py-3">
-              <h5 className="card-title fw-bold mb-0">Financial Summary</h5>
-            </div>
-            <div className="card-body p-4 bg-light bg-opacity-50">
-              <div className="space-y-4">
-                <Field label="Sale Price">
-                  {isEditMode ? <input type="number" value={form.salePrice} onChange={(e) => f("salePrice", e.target.value)} className="form-control" /> : <div className="fs-4 fw-bold text-dark">{formatINR(parseFloat(form.salePrice || "0"))}</div>}
-                </Field>
-                <Field label="Discount">
-                  {isEditMode ? <input type="number" value={form.discount} onChange={(e) => f("discount", e.target.value)} className="form-control" /> : <div className="text-danger fw-semibold">-{formatINR(parseFloat(form.discount || "0"))}</div>}
-                </Field>
-                <Field label="Tax">
-                  {isEditMode ? <input type="number" value={form.tax} onChange={(e) => f("tax", e.target.value)} className="form-control" /> : <div className="text-primary fw-semibold">+{formatINR(parseFloat(form.tax || "0"))}</div>}
-                </Field>
-                
-                <hr className="opacity-10" />
+      <form id="editForm" onSubmit={handleUpdate} className="px-4">
+        <div className="row g-4 font-inter">
+          <div className="col-lg-8">
+            <div className="card border-0 shadow-premium rounded-5 overflow-hidden mb-4 bg-white">
+              <div className="card-body p-5">
+                <div className="d-flex align-items-center gap-3 mb-5">
+                  <div className="p-3 bg-primary-subtle rounded-4 text-primary shadow-sm">
+                    <Receipt size={24} />
+                  </div>
+                  <h4 className="fw-extrabold m-0 text-navy uppercase tracking-widest">Transaction Metadata</h4>
+                </div>
 
-                <div className="p-4 bg-primary rounded-4 text-white text-center shadow-sm">
-                  <div className="small opacity-75 uppercase fw-bold mb-1">Final Bill Amount</div>
-                  <div className="h3 fw-extrabold m-0 font-monospace">
-                    {formatINR(parseFloat(form.finalBillAmount || "0"))}
+                <div className="row g-5">
+                  <div className="col-md-6">
+                    <Field label="Customer Name" icon={<User size={18} />}>
+                      <input 
+                        readOnly={!isEditMode}
+                        value={form.customer} 
+                        onChange={(e) => f("customer", e.target.value)} 
+                        className={`form-control-minimal fw-bold fs-5 ${isEditMode ? 'form-control-edit' : ''}`} 
+                      />
+                    </Field>
+                  </div>
+                  <div className="col-md-6">
+                    <Field label="Bill / Invoice Number" icon={<Hash size={18} />}>
+                      <input 
+                        readOnly={!isEditMode}
+                        value={form.billNo} 
+                        onChange={(e) => f("billNo", e.target.value)} 
+                        className={`form-control-minimal fw-bold fs-5 ${isEditMode ? 'form-control-edit' : ''}`} 
+                      />
+                    </Field>
+                  </div>
+                  <div className="col-md-6">
+                    <Field label="Sale Date" icon={<Calendar size={18} />}>
+                      <input 
+                        type={isEditMode ? "date" : "text"}
+                        readOnly={!isEditMode}
+                        value={form.date} 
+                        onChange={(e) => f("date", e.target.value)} 
+                        className={`form-control-minimal fw-semibold ${isEditMode ? 'form-control-edit' : ''}`} 
+                      />
+                    </Field>
+                  </div>
+                  <div className="col-md-6">
+                    <Field label="Item Dispatched" icon={<Tag size={18} />}>
+                      <input 
+                        readOnly={!isEditMode}
+                        value={form.itemName} 
+                        onChange={(e) => f("itemName", e.target.value)} 
+                        className={`form-control-minimal text-indigo fw-bold ${isEditMode ? 'form-control-edit' : ''}`} 
+                      />
+                    </Field>
                   </div>
                 </div>
               </div>
             </div>
-            {isEditMode && (
-              <div className="card-footer p-4 bg-white border-top">
-                <button type="submit" form="editForm" disabled={saving} className="btn btn-primary w-100 py-3 shadow-sm d-flex align-items-center justify-content-center gap-2 fw-bold">
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {saving ? "Updating..." : "Save Changes"}
-                </button>
+
+            <div className="card h-100 border-0 shadow-premium rounded-5 bg-emerald-subtle-25">
+              <div className="card-body p-5">
+                <div className="d-flex align-items-center gap-3 mb-5">
+                   <div className="p-3 bg-emerald rounded-4 text-white shadow-sm">
+                    <Package size={24} />
+                  </div>
+                  <h4 className="fw-extrabold m-0 text-emerald uppercase tracking-widest">Product Geometry</h4>
+                </div>
+                <div className="row g-4">
+                  <div className="col-md-4">
+                    <ModernBadgeStat label="Product Weight" value={`${form.weight} ${form.weightUnit}`} isEdit={false} field="" onChange={() => {}} />
+                  </div>
+                  <div className="col-md-4">
+                    <ModernSmallField label="Pieces Count" value={form.pieces} isEdit={isEditMode} onChange={(v) => f("pieces", v)} accent="emerald" />
+                  </div>
+                  <div className="col-md-4">
+                    <ModernSmallField label="Total Strands" value={form.lines} isEdit={isEditMode} onChange={(v) => f("lines", v)} accent="emerald" />
+                  </div>
+                  <div className="col-md-4">
+                    <ModernBadgeStat label="Geometry/Shape" value={form.shape} isEdit={isEditMode} field="shape" onChange={f} />
+                  </div>
+                  <div className="col-md-4">
+                    <ModernBadgeStat label="Dimension Ref" value={form.size} isEdit={isEditMode} field="size" onChange={f} />
+                  </div>
+                  <div className="col-md-4">
+                    <ModernBadgeStat label="Strand Length" value={form.lineLength} isEdit={isEditMode} field="lineLength" onChange={f} />
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
+          </div>
+
+          <div className="col-lg-4">
+             <div className="card border-0 shadow-premium rounded-5 bg-navy text-white overflow-hidden mb-4 sticky-top" style={{ top: '2rem' }}>
+              <div className="bg-primary-gradient p-5 text-center">
+                <div className="small font-mono opacity-75 uppercase mb-2 tracking-widest">Net Sale Value</div>
+                <div className="h1 fw-extrabold text-amber-500 m-0 letter-tight">{formatINR(parseFloat(form.netSale || "0"))}</div>
+              </div>
+              <div className="card-body p-5">
+                <div className="space-y-4">
+                  <ModernStatRow label="Acquisition/Base" value={parseFloat(form.baseSale || "0").toFixed(2)} unit="₹" isEdit={isEditMode} field="baseSale" onChange={f} />
+                  <ModernStatRow label="Premiums/Other" value={parseFloat(form.otherSale || "0").toFixed(2)} unit="₹" isEdit={isEditMode} field="otherSale" onChange={f} />
+                  
+                  <hr className="border-white border-opacity-10" />
+                  
+                  <div className="p-4 bg-white bg-opacity-5 rounded-4 border border-white border-opacity-10 text-center mt-5">
+                    <div className="small opacity-50 uppercase mb-2 fw-bold tracking-widest">Transaction Status</div>
+                    {isEditMode ? (
+                        <select 
+                          className="form-select bg-transparent border-primary border-opacity-50 text-white fw-bold text-center"
+                          value={form.status}
+                          onChange={(e) => f("status", e.target.value)}
+                        >
+                          {STATUS_OPTIONS.map(o => <option key={o} className="text-dark" value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <div className={`h5 fw-extrabold m-0 text-${form.status === 'COMPLETED' ? 'emerald' : form.status === 'PENDING' ? 'warning' : 'rose'}`}>
+                          {form.status}
+                        </div>
+                      )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </form>
+
       <style jsx>{`
         .bg-light { background-color: #f8fafc !important; }
         .text-navy { color: #0f172a !important; }
+        .text-emerald { color: #10b981 !important; }
+        .bg-emerald { background-color: #10b981 !important; }
+        .bg-emerald-subtle-25 { background-color: rgba(16, 185, 129, 0.04) !important; }
         .bg-navy { background-color: #0f172a !important; }
         .bg-primary-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); }
-        .btn-indigo { background-color: #4f46e5; color: white; }
-        .btn-indigo:hover { background-color: #4338ca; color: white; transform: translateY(-2px); }
         .shadow-premium { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02) !important; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .letter-tight { letter-spacing: -0.025em; }
+        .form-control-minimal { background: transparent; border: none; padding: 0.5rem 0; color: #1e293b; width: 100%; transition: all 0.2s; }
+        .form-control-minimal:focus { outline: none; }
+        .form-control-edit { background: #f1f5f9 !important; border: 1px solid #cbd5e1 !important; padding: 0.75rem 1rem !important; border-radius: 12px !important; }
+        .form-control-edit:focus { background: white !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important; }
         .hover-translate-y:hover { transform: translateY(-3px); }
         .hover-scale:hover { transform: scale(1.05); }
         .rounded-5 { border-radius: 2rem !important; }
         .rounded-4 { border-radius: 1rem !important; }
+        .space-y-4 > * + * { margin-top: 1rem; }
         .fw-extrabold { font-weight: 800; }
-        .drop-shadow-md { filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.07)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.06)); }
+        .text-amber-500 { color: #f59e0b !important; }
       `}</style>
     </div>
   );
 }
 
-function Field({ label, children, icon, className = "" }: { label: string; children: React.ReactNode; icon?: React.ReactNode; className?: string }) {
+function Field({ label, children, icon }: { label: string; children: React.ReactNode; icon: React.ReactNode }) {
   return (
-    <div className={className}>
-      <label className="form-label mb-2 text-muted fw-bold small uppercase d-flex align-items-center gap-2">
-        {icon} {label}
+    <div className="mb-2">
+      <label className="text-secondary small d-flex align-items-center gap-2 mb-2 fw-bold tracking-wider uppercase opacity-80">
+        <span className="text-primary">{icon}</span> {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+function ModernStatRow({ label, value, unit, isEdit, field, onChange }: { label: string; value: string; unit: string; isEdit: boolean; field: string; onChange: any }) {
+  return (
+    <div className="d-flex justify-content-between align-items-center py-2">
+      <span className="text-white text-opacity-60 fw-semibold small">{label}</span>
+      {isEdit ? (
+        <div className="input-group input-group-sm w-50">
+          <span className="input-group-text bg-white bg-opacity-10 border-0 text-white font-mono small">{unit}</span>
+          <input 
+            type="number" 
+            className="form-control bg-white bg-opacity-10 border-0 text-white px-3" 
+            value={value} 
+            onChange={(e) => onChange(field, e.target.value)} 
+          />
+        </div>
+      ) : (
+        <span className="text-white fw-extrabold fs-5">{value} <span className="small fw-medium text-white text-opacity-40">{unit}</span></span>
+      )}
+    </div>
+  );
+}
+
+function ModernBadgeStat({ label, value, isEdit, field, onChange }: { label: string; value: string; isEdit: boolean; field: string; onChange: any }) {
+  return (
+    <div className="bg-white p-3 rounded-4 transition-all hover-translate-y h-100 shadow-sm border border-light">
+      <div className="text-secondary small fw-bold uppercase tracking-widest mb-2" style={{ fontSize: '0.6rem' }}>{label}</div>
+      {isEdit ? (
+        <input 
+          className="form-control form-control-sm bg-light border-0 border-bottom border-primary-subtle text-navy p-0 rounded-0 fw-bold"
+          value={value}
+          onChange={(e) => onChange(field, e.target.value)}
+        />
+      ) : (
+        <div className="text-navy fw-extrabold">{value || "—"}</div>
+      )}
+    </div>
+  );
+}
+
+function ModernSmallField({ label, value, unit, isEdit, onChange, accent }: { label: string; value: string; unit?: string; isEdit: boolean; onChange: (v: string) => void; accent: 'emerald' | 'rose' }) {
+  const textColorClass = accent === 'emerald' ? 'text-emerald' : 'text-rose';
+
+  return (
+    <div className="bg-white p-4 rounded-4 shadow-sm h-100 border border-white">
+      <div className="text-secondary small fw-bold uppercase tracking-widest mb-2 font-mono" style={{ fontSize: '0.55rem' }}>{label}</div>
+      {isEdit ? (
+        <div className="input-group input-group-sm border-bottom border-secondary-subtle">
+          <input 
+            type="number" 
+            className="form-control border-0 bg-transparent text-navy p-0 fw-bold" 
+            value={value} 
+            onChange={(e) => onChange(e.target.value)} 
+          />
+          {unit && <span className="input-group-text border-0 bg-transparent text-muted small">{unit}</span>}
+        </div>
+      ) : (
+        <div className={`fw-extrabold fs-4 ${textColorClass}`}>{value || "0"}<span className="small opacity-50 fw-medium ms-1">{unit}</span></div>
+      )}
     </div>
   );
 }
