@@ -47,9 +47,9 @@ export default function PurchasePage() {
   const INITIAL_PURCHASE_FORM = {
     lotNo: "", date: new Date().toISOString().slice(0, 10), itemName: "", category: "ROUGH",
     supplierName: "", descriptionRef: "",
-    grossWeight: "", lessWeight: "0", weightUnit: "G", size: "", shape: "", lines: "", lineLength: "", pieces: "",
-    selectionWeight: "", selectionPieces: "", selectionLines: "", selectionLength: "",
-    rejectionWeight: "", rejectionPieces: "", rejectionLines: "", rejectionLength: "", rejectionDate: "", rejectionStatus: "PENDING",
+    grossWeight: "", lessWeight: "0", weightUnit: "G", size: "", shape: "", pieces: "",
+    selectionWeight: "", selectionPieces: "",
+    rejectionWeight: "", rejectionPieces: "", rejectionDate: "", rejectionStatus: "PENDING",
     purchasePrice: "",
   };
   const [purchaseForm, setPurchaseForm] = useState(INITIAL_PURCHASE_FORM);
@@ -112,7 +112,6 @@ export default function PurchasePage() {
   const pNum = (v: string) => parseFloat(v || "0");
   const netWeight = pNum(purchaseForm.grossWeight) - pNum(purchaseForm.lessWeight);
   const netPieces = parseInt(purchaseForm.pieces || "0");
-  const netLines = parseInt(purchaseForm.lines || "0");
   const totalCostCalc = pNum(purchaseForm.purchasePrice);
   const netWeightG = purchaseForm.weightUnit === "KG" ? netWeight * 1000 : purchaseForm.weightUnit === "CT" ? netWeight * 0.2 : netWeight;
   const costPerGram = netWeightG > 0 ? totalCostCalc / netWeightG : 0;
@@ -131,11 +130,6 @@ export default function PurchasePage() {
         if (sp <= np) { next.rejectionPieces = (np - sp).toString(); setPurchaseError(""); }
         else setPurchaseError(`Selection pieces (${sp}) exceeds total pieces (${np})`);
       }
-      if (k === "selectionLines" || k === "lines") {
-        const nl = parseInt(next.lines || "0"); const sl = parseInt(next.selectionLines || "0");
-        if (sl <= nl) { next.rejectionLines = (nl - sl).toString(); setPurchaseError(""); }
-        else setPurchaseError(`Selection lines (${sl}) exceeds total lines (${nl})`);
-      }
       return next;
     });
   };
@@ -144,10 +138,8 @@ export default function PurchasePage() {
     e.preventDefault(); setPurchaseError("");
     const sw = pNum(purchaseForm.selectionWeight);
     const sp = parseInt(purchaseForm.selectionPieces || "0");
-    const sl = parseInt(purchaseForm.selectionLines || "0");
     if (sw > netWeight) { setPurchaseError(`Selection weight (${sw}) cannot exceed net weight (${netWeight.toFixed(3)})`); return; }
     if (sp > netPieces) { setPurchaseError(`Selection pieces (${sp}) cannot exceed total pieces (${netPieces})`); return; }
-    if (sl > netLines) { setPurchaseError(`Selection lines (${sl}) cannot exceed total lines (${netLines})`); return; }
     setPurchaseSaving(true);
     const r = await fetch("/api/purchase", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -155,17 +147,11 @@ export default function PurchasePage() {
         ...purchaseForm,
         grossWeight: parseFloat(purchaseForm.grossWeight),
         lessWeight: parseFloat(purchaseForm.lessWeight || "0"),
-        lines: purchaseForm.lines ? parseInt(purchaseForm.lines) : undefined,
-        lineLength: purchaseForm.lineLength ? parseFloat(purchaseForm.lineLength) : undefined,
         pieces: purchaseForm.pieces ? parseInt(purchaseForm.pieces) : undefined,
         selectionWeight: purchaseForm.selectionWeight ? parseFloat(purchaseForm.selectionWeight) : undefined,
         selectionPieces: purchaseForm.selectionPieces ? parseInt(purchaseForm.selectionPieces) : undefined,
-        selectionLines: purchaseForm.selectionLines ? parseInt(purchaseForm.selectionLines) : undefined,
-        selectionLength: purchaseForm.selectionLength ? parseFloat(purchaseForm.selectionLength) : undefined,
         rejectionWeight: purchaseForm.rejectionWeight ? parseFloat(purchaseForm.rejectionWeight) : undefined,
         rejectionPieces: purchaseForm.rejectionPieces ? parseInt(purchaseForm.rejectionPieces) : undefined,
-        rejectionLines: purchaseForm.rejectionLines ? parseInt(purchaseForm.rejectionLines) : undefined,
-        rejectionLength: purchaseForm.rejectionLength ? parseFloat(purchaseForm.rejectionLength) : undefined,
         rejectionDate: purchaseForm.rejectionDate || null,
         rejectionStatus: purchaseForm.rejectionStatus || "PENDING",
         purchasePrice: parseFloat(purchaseForm.purchasePrice),
@@ -456,10 +442,6 @@ export default function PurchasePage() {
                         <Field label="Shape" className="col-md-4"><input value={purchaseForm.shape} onChange={(e) => pf("shape", e.target.value)} className="form-control" /></Field>
                         <Field label="Total Pieces" className="col-md-4"><input type="number" value={purchaseForm.pieces} onChange={(e) => pf("pieces", e.target.value)} className="form-control" /></Field>
                       </div>
-                      <div className="row g-3 mb-3">
-                        <Field label="No. of Lines" className="col-md-6"><input type="number" value={purchaseForm.lines} onChange={(e) => pf("lines", e.target.value)} className="form-control" /></Field>
-                        <Field label="Line Length" className="col-md-6"><input type="number" step="0.01" value={purchaseForm.lineLength} onChange={(e) => pf("lineLength", e.target.value)} className="form-control" /></Field>
-                      </div>
                       <div className="p-3 bg-light rounded mt-2">
                         <span className="small text-muted">Net Weight (Auto): </span>
                         <strong className="text-primary">{netWeight.toFixed(3)} {purchaseForm.weightUnit}</strong>
@@ -476,12 +458,6 @@ export default function PurchasePage() {
                           <Field label="Pieces" className="col-12" error={parseInt(purchaseForm.selectionPieces || "0") > netPieces ? "Exceeds total" : ""}>
                             <input type="number" value={purchaseForm.selectionPieces} onChange={(e) => pf("selectionPieces", e.target.value)} className="form-control" />
                           </Field>
-                          <Field label="No. of Lines" className="col-12" error={parseInt(purchaseForm.selectionLines || "0") > netLines ? "Exceeds total" : ""}>
-                            <input type="number" value={purchaseForm.selectionLines} onChange={(e) => pf("selectionLines", e.target.value)} className="form-control" />
-                          </Field>
-                          <Field label="Line Length" className="col-12">
-                            <input type="number" step="0.01" value={purchaseForm.selectionLength} onChange={(e) => pf("selectionLength", e.target.value)} className="form-control" />
-                          </Field>
                         </div>
                       </div>
                       <div className="col-md-6 border-top pt-3">
@@ -489,8 +465,6 @@ export default function PurchasePage() {
                         <div className="row g-3">
                           <Field label="Weight" className="col-12"><input type="number" step="0.001" value={purchaseForm.rejectionWeight} onChange={(e) => pf("rejectionWeight", e.target.value)} placeholder="0.000" className="form-control" /></Field>
                           <Field label="Pieces" className="col-12"><input type="number" value={purchaseForm.rejectionPieces} onChange={(e) => pf("rejectionPieces", e.target.value)} className="form-control" /></Field>
-                          <Field label="No. Lines" className="col-6"><input type="number" value={purchaseForm.rejectionLines} onChange={(e) => pf("rejectionLines", e.target.value)} className="form-control" /></Field>
-                          <Field label="Line Length" className="col-6"><input type="number" step="0.01" value={purchaseForm.rejectionLength} onChange={(e) => pf("rejectionLength", e.target.value)} className="form-control" /></Field>
                         </div>
                       </div>
                     </div>
