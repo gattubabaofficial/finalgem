@@ -125,22 +125,17 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
             </Link>
             <div className="d-flex flex-column justify-content-center select-none">
               <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm" style={{ fontSize: '0.65rem', letterSpacing: '0.05em', lineHeight: '1' }}>
-                  {type.toUpperCase()} REJECTION
+                <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm border border-white border-opacity-20" style={{ fontSize: '0.75rem' }}>
+                  {data.lotNo || "N/A"}
                 </span>
-                <ChevronRight className="text-white text-opacity-40" size={12} />
-                <span className="text-white text-opacity-70 small fw-bold tracking-widest uppercase" style={{ fontSize: '0.6rem' }}>
-                  Detail
+                <ChevronRight className="text-white text-opacity-50" size={16} />
+                <span className="text-white text-opacity-80 small fw-bold tracking-wide uppercase" style={{ fontSize: '0.65rem' }}>
+                  {type} Rejection
                 </span>
               </div>
-              <div className="d-flex align-items-center gap-3">
-                <h2 className="fw-extrabold text-white m-0 letter-tight">
-                  Lot #{data.lotNo || "N/A"}
-                </h2>
-                <div className="p-2 bg-white bg-opacity-10 rounded-3 text-white-50 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
-                  <Package size={20} />
-                </div>
-              </div>
+              <h3 className="fw-extrabold text-white m-0 letter-tight drop-shadow-sm">
+                {data.itemName || "Rejection Detail"}
+              </h3>
             </div>
           </div>
           
@@ -149,7 +144,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
               <>
                 <button 
                   onClick={() => setIsEditMode(!isEditMode)}
-                  className={`btn ${isEditMode ? 'bg-white text-navy shadow-lg' : 'bg-white bg-opacity-10 text-white'} d-flex align-items-center gap-2 px-4 py-2 rounded-4 fw-bold border-0 transition-standard hover-scale`}
+                  className={`btn ${isEditMode ? 'bg-navy text-white' : 'bg-white text-primary'} d-flex align-items-center gap-2 px-4 py-3 rounded-4 fw-extrabold border-0 shadow-sm transition-standard hover-scale`}
                 >
                   <Edit3 size={18} />
                   <span>{isEditMode ? "Cancel" : "Edit Status"}</span>
@@ -159,17 +154,17 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                   <button 
                     onClick={handleUpdate}
                     disabled={saving}
-                    className="btn btn-navy d-flex align-items-center gap-2 px-4 py-2 rounded-4 shadow-lg text-white fw-bold border-0 transition-standard hover-scale"
+                    className="btn bg-white text-indigo d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-extrabold border-0 transition-standard hover-scale"
                   >
                     {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                    <span>Update Action</span>
+                    <span>Apply Updates</span>
                   </button>
                 )}
 
                 <button 
                   onClick={handleDelete}
                   disabled={saving}
-                  className="btn btn-danger text-white d-flex align-items-center gap-2 px-4 py-2 rounded-4 shadow-sm border-0 transition-standard hover-scale"
+                  className="btn btn-danger text-white d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm border-0 transition-standard hover-scale"
                 >
                   <Trash2 size={18} />
                   <span className="fw-bold">Remove</span>
@@ -318,6 +313,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
 
       <style jsx>{`
         .bg-navy { background-color: #0f172a !important; }
+        .text-indigo { color: #4f46e5 !important; }
         .bg-primary { background-color: #4f46e5 !important; }
         .btn-navy { background-color: #1e293b !important; }
         .text-navy { color: #0f172a !important; }
