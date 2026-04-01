@@ -66,6 +66,7 @@ export default function PurchasePage() {
   const INITIAL_LINES_FORM = {
     lotNo: "", date: new Date().toISOString().slice(0, 10),
     itemName: "", supplier: "", descriptionRef: "",
+    grossWeight: "", lessWeight: "0", weightUnit: "G", size: "", shape: "",
     noOfLines: "", lineLengthInch: "", lineLengthMm: "", lineLengthCm: "",
     selectionLines: "", selectionLengthInch: "", selectionLengthMm: "", selectionLengthCm: "",
     rejectionLines: "", rejectionLengthInch: "", rejectionLengthMm: "", rejectionLengthCm: "",
@@ -228,9 +229,11 @@ export default function PurchasePage() {
     const r = await fetch("/api/lines-entry", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
-        ...linesForm, 
+        ...linesForm,
+        grossWeight: parseFloat(linesForm.grossWeight || "0"),
+        lessWeight: parseFloat(linesForm.lessWeight || "0"),
+        noOfLines: linesForm.noOfLines ? parseInt(linesForm.noOfLines) : undefined,
         bunch: parseInt(linesForm.bunch || "0") || 0,
-        sublots: linesForm.sublots 
       }),
     });
     if (r.ok) { setShowLinesForm(false); setLinesForm(INITIAL_LINES_FORM); fetchLines(); }
@@ -530,6 +533,25 @@ export default function PurchasePage() {
                       <Field label="Item Name" className="col-md-6"><input value={linesForm.itemName} onChange={(e) => lf("itemName", e.target.value)} className="form-control" /></Field>
                       <Field label="Supplier" className="col-md-6"><input value={linesForm.supplier} onChange={(e) => lf("supplier", e.target.value)} className="form-control" /></Field>
                       <Field label="Description / Reference" className="col-12"><input value={linesForm.descriptionRef} onChange={(e) => lf("descriptionRef", e.target.value)} className="form-control" /></Field>
+                    </div>
+
+                    {/* Received Info */}
+                    <div className="mt-3 pt-3 border-top">
+                      <p className="small fw-bold text-muted text-uppercase mb-3">Received</p>
+                      <div className="row g-3 mb-3">
+                        <Field label="Weight Unit" className="col-md-4">
+                          <select value={linesForm.weightUnit} onChange={(e) => lf("weightUnit", e.target.value)} className="form-select">
+                            {WEIGHT_UNITS.map((u) => <option key={u}>{u}</option>)}
+                          </select>
+                        </Field>
+                        <Field label="Gross Weight" className="col-md-4"><input type="number" step="0.001" value={linesForm.grossWeight} onChange={(e) => lf("grossWeight", e.target.value)} placeholder="0.000" className="form-control" /></Field>
+                        <Field label="Less Weight" className="col-md-4"><input type="number" step="0.001" value={linesForm.lessWeight} onChange={(e) => lf("lessWeight", e.target.value)} placeholder="0.000" className="form-control" /></Field>
+                      </div>
+                      <div className="row g-3 mb-3">
+                        <Field label="Size" className="col-md-4"><input value={linesForm.size} onChange={(e) => lf("size", e.target.value)} className="form-control" /></Field>
+                        <Field label="Shape" className="col-md-4"><input value={linesForm.shape} onChange={(e) => lf("shape", e.target.value)} className="form-control" /></Field>
+                        <Field label="No. of Lines" className="col-md-4"><input type="number" value={linesForm.noOfLines} onChange={(e) => lf("noOfLines", e.target.value)} className="form-control" /></Field>
+                      </div>
                     </div>
 
                     {/* Bunch */}
