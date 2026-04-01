@@ -123,20 +123,24 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
             <Link href="/rejection" className="gem-back-button shadow-sm border border-white border-opacity-20" aria-label="Go back">
               <ArrowLeft size={24} />
             </Link>
-            <div>
+            <div className="d-flex flex-column justify-content-center">
               <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm" style={{ fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm" style={{ fontSize: '0.65rem', letterSpacing: '0.05em', lineHeight: '1' }}>
                   {type.toUpperCase()} REJECTION
                 </span>
-                <ChevronRight className="text-white text-opacity-40" size={14} />
-                <span className="text-white text-opacity-70 small fw-bold tracking-widest uppercase" style={{ fontSize: '0.65rem' }}>
-                  Rejection Detail
+                <ChevronRight className="text-white text-opacity-40" size={12} />
+                <span className="text-white text-opacity-70 small fw-bold tracking-widest uppercase" style={{ fontSize: '0.6rem' }}>
+                  Detail
                 </span>
               </div>
-              <h2 className="fw-extrabold text-white m-0 letter-tight d-flex align-items-center gap-3">
-                Lot #{data.lotNo || "N/A"}
-                <span className="p-2 bg-white bg-opacity-10 rounded-3 text-white-50"><Package size={20} /></span>
-              </h2>
+              <div className="d-flex align-items-center gap-3">
+                <h2 className="fw-extrabold text-white m-0 letter-tight">
+                  Lot #{data.lotNo || "N/A"}
+                </h2>
+                <div className="p-2 bg-white bg-opacity-10 rounded-3 text-white-50 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
+                  <Package size={20} />
+                </div>
+              </div>
             </div>
           </div>
           
@@ -292,13 +296,15 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                     )}
                     
                     <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 rounded-4 text-white-50 mt-5 mb-0 p-4 shadow-sm">
-                      <div className="d-flex align-items-start gap-3">
-                        <div className="p-2 bg-warning bg-opacity-20 rounded-3 text-warning">
-                          <Info size={18} />
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="p-2 bg-warning bg-opacity-20 rounded-3 text-warning d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
+                          <Info size={20} />
                         </div>
-                        <div className="small lh-base">
+                        <div className="lh-base">
                           <strong className="d-block mb-1 text-warning uppercase fw-extrabold tracking-widest" style={{ fontSize: '0.65rem' }}>Status Impact</strong>
-                          Updating the status affects physical stock reconciliation. <strong className="text-white">RETURNED</strong> marks this for ship-back.
+                          <span className="small opacity-80 mt-1 d-block">
+                            Updating status affects physical stock. <strong className="text-white">RETURNED</strong> marks for ship-back.
+                          </span>
                         </div>
                       </div>
                     </div>
