@@ -149,7 +149,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
               <>
                 <button 
                   onClick={() => setIsEditMode(!isEditMode)}
-                  className={`btn ${isEditMode ? 'bg-white text-primary shadow-lg' : 'bg-white bg-opacity-10 text-white'} d-flex align-items-center gap-2 px-4 py-2 rounded-4 fw-bold border-0 transition-standard hover-scale`}
+                  className={`btn ${isEditMode ? 'bg-white text-navy shadow-lg' : 'bg-white bg-opacity-10 text-white'} d-flex align-items-center gap-2 px-4 py-2 rounded-4 fw-bold border-0 transition-standard hover-scale`}
                 >
                   <Edit3 size={18} />
                   <span>{isEditMode ? "Cancel" : "Edit Status"}</span>
@@ -159,7 +159,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                   <button 
                     onClick={handleUpdate}
                     disabled={saving}
-                    className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 rounded-4 shadow-primary-sm fw-bold border-0 transition-standard hover-scale"
+                    className="btn btn-navy d-flex align-items-center gap-2 px-4 py-2 rounded-4 shadow-lg text-white fw-bold border-0 transition-standard hover-scale"
                   >
                     {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                     <span>Update Action</span>
@@ -295,15 +295,15 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                        <ModernStatRow label="Original sale value" value={`₹ ${data.netSale.toLocaleString()}`} color="text-warning" isLarge />
                     )}
                     
-                    <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 rounded-4 text-white-50 mt-5 mb-0 p-4 shadow-sm">
+                    <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 rounded-4 text-white mt-5 mb-0 p-4 shadow-sm">
                       <div className="d-flex align-items-center gap-3">
                         <div className="p-2 bg-warning bg-opacity-20 rounded-3 text-warning d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
                           <Info size={20} />
                         </div>
                         <div className="lh-base">
                           <strong className="d-block mb-1 text-warning uppercase fw-extrabold tracking-widest" style={{ fontSize: '0.65rem' }}>Status Impact</strong>
-                          <span className="small opacity-80 mt-1 d-block">
-                            Updating status affects physical stock. <strong className="text-white">RETURNED</strong> marks for ship-back.
+                          <span className="small text-white-50 mt-1 d-block fw-medium">
+                            Stock updates are physical. <strong className="text-white opacity-100">RETURNED</strong> items move to transit.
                           </span>
                         </div>
                       </div>
@@ -318,6 +318,8 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
 
       <style jsx>{`
         .bg-navy { background-color: #0f172a !important; }
+        .bg-primary { background-color: #4f46e5 !important; }
+        .btn-navy { background-color: #1e293b !important; }
         .text-navy { color: #0f172a !important; }
         .text-rose { color: #f43f5e !important; }
         .bg-rose { background-color: #f43f5e !important; }
