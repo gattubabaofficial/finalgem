@@ -115,6 +115,7 @@ export default function PurchasePage() {
   const netPieces = parseInt(purchaseForm.pieces || "0");
   const totalCostCalc = pNum(purchaseForm.purchasePrice);
   const netWeightG = purchaseForm.weightUnit === "KG" ? netWeight * 1000 : purchaseForm.weightUnit === "CT" ? netWeight * 0.2 : netWeight;
+  const netWeightLines = pNum(linesForm.grossWeight) - pNum(linesForm.lessWeight);
   const costPerGram = netWeightG > 0 ? totalCostCalc / netWeightG : 0;
 
   const pf = (k: string, v: string) => {
@@ -551,6 +552,10 @@ export default function PurchasePage() {
                         <Field label="Size" className="col-md-4"><input value={linesForm.size} onChange={(e) => lf("size", e.target.value)} className="form-control" /></Field>
                         <Field label="Shape" className="col-md-4"><input value={linesForm.shape} onChange={(e) => lf("shape", e.target.value)} className="form-control" /></Field>
                         <Field label="No. of Lines" className="col-md-4"><input type="number" value={linesForm.noOfLines} onChange={(e) => lf("noOfLines", e.target.value)} className="form-control" /></Field>
+                      </div>
+                      <div className="p-3 bg-light rounded mt-2">
+                        <span className="small text-muted">Net Weight (Auto): </span>
+                        <strong className="text-primary">{netWeightLines.toFixed(3)} {linesForm.weightUnit}</strong>
                       </div>
                     </div>
 
