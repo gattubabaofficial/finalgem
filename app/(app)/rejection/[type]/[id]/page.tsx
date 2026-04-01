@@ -123,7 +123,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
             <Link href="/rejection" className="gem-back-button shadow-sm border border-white border-opacity-20" aria-label="Go back">
               <ArrowLeft size={24} />
             </Link>
-            <div className="d-flex flex-column justify-content-center">
+            <div className="d-flex flex-column justify-content-center select-none">
               <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
                 <span className="bg-white text-primary fw-bold px-3 py-1 rounded-pill font-mono shadow-sm" style={{ fontSize: '0.65rem', letterSpacing: '0.05em', lineHeight: '1' }}>
                   {type.toUpperCase()} REJECTION
@@ -217,7 +217,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                           {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o.replace(/_/g, " ")}</option>)}
                         </select>
                       ) : (
-                        <div className="mt-1">
+                        <div className="mt-1 select-none">
                           <span className={`badge ${status === 'PENDING' ? 'bg-warning text-dark' : status === 'RETURNED' ? 'bg-info text-white' : status === 'RESELLABLE' ? 'bg-success text-white' : status === 'REJECTED' || status === 'CLOSED' ? 'bg-danger text-white' : 'bg-primary text-white'} px-4 py-2 rounded-pill fw-bold tracking-tight shadow-sm`}>
                             {status.replace(/_/g, " ")}
                           </span>
@@ -295,7 +295,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
                        <ModernStatRow label="Original sale value" value={`₹ ${data.netSale.toLocaleString()}`} color="text-warning" isLarge />
                     )}
                     
-                    <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 rounded-4 text-white mt-5 mb-0 p-4 shadow-sm">
+                    <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 rounded-4 text-white mt-5 mb-0 p-4 shadow-sm select-none">
                       <div className="d-flex align-items-center gap-3">
                         <div className="p-2 bg-warning bg-opacity-20 rounded-3 text-warning d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
                           <Info size={20} />
@@ -336,6 +336,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
         .transition-standard { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
         .hover-scale:hover:not(:disabled) { transform: scale(1.02); filter: brightness(1.1); }
         .hover-translate-y:hover { transform: translateY(-3px); }
+        .select-none { user-select: none; }
         .uppercase { text-transform: uppercase; }
         .font-mono { font-family: 'JetBrains Mono', 'Roboto Mono', monospace; }
         .tracking-tight { letter-spacing: -0.01em; }
