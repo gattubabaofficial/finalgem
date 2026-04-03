@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     // 2. Check in lines entries (master)
     const { data: lineMaster } = await supabaseAdmin
-      .from("lines_entries")
+      .from("lines_entry")
       .select("id")
       .eq("organization_id", organizationId)
       .eq("lot_no", lotNo)

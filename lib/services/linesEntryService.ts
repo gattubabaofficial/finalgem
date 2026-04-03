@@ -3,7 +3,7 @@ import { toCamelCase } from "@/lib/utils";
 
 export async function getLinesEntries(organizationId: string, search?: string) {
   const { data, error } = await supabaseAdmin
-    .from("lines_entries")
+    .from("lines_entry")
     .select("*, sublots:lines_entry_sublots(*)")
     .eq("organization_id", organizationId)
     .order("date", { ascending: false });
@@ -31,13 +31,18 @@ export async function createLinesEntry(data: any, organizationId: string) {
 
   // 1. Create the master lines entry
   const { data: entry, error: entryErr } = await supabaseAdmin
-    .from("lines_entries")
+    .from("lines_entry")
     .insert({
       lot_no: data.lotNo,
       date: data.date || new Date().toISOString(),
       item_name: data.itemName,
       supplier: data.supplier,
       description_ref: data.descriptionRef,
+      gross_weight: data.grossWeight ? parseFloat(data.grossWeight) : 0,
+      less_weight: data.lessWeight ? parseFloat(data.lessWeight) : 0,
+      weight_unit: data.weightUnit || 'G',
+      size: data.size,
+      shape: data.shape,
       no_of_lines: data.noOfLines ? parseInt(data.noOfLines) : null,
       line_length_inch: data.lineLengthInch ? parseFloat(data.lineLengthInch) : null,
       line_length_mm: data.lineLengthMm ? parseFloat(data.lineLengthMm) : null,
@@ -86,7 +91,7 @@ export async function createLinesEntry(data: any, organizationId: string) {
 
 export async function getLinesEntryById(id: string, organizationId: string) {
   const { data, error } = await supabaseAdmin
-    .from("lines_entries")
+    .from("lines_entry")
     .select("*, sublots:lines_entry_sublots(*)")
     .eq("id", id)
     .eq("organization_id", organizationId)
@@ -105,13 +110,18 @@ export async function updateLinesEntry(id: string, data: any, organizationId: st
   const bunch = Math.max(0, parseInt(data.bunch ?? "0") || 0);
 
   const { data: updated, error: updErr } = await supabaseAdmin
-    .from("lines_entries")
+    .from("lines_entry")
     .update({
       lot_no: data.lotNo,
       date: data.date,
       item_name: data.itemName,
       supplier: data.supplier,
       description_ref: data.descriptionRef,
+      gross_weight: data.grossWeight ? parseFloat(data.grossWeight) : 0,
+      less_weight: data.lessWeight ? parseFloat(data.lessWeight) : 0,
+      weight_unit: data.weightUnit || 'G',
+      size: data.size,
+      shape: data.shape,
       no_of_lines: data.noOfLines ? parseInt(data.noOfLines) : null,
       line_length_inch: data.lineLengthInch ? parseFloat(data.lineLengthInch) : null,
       line_length_mm: data.lineLengthMm ? parseFloat(data.lineLengthMm) : null,
@@ -296,7 +306,7 @@ export async function updateLinesEntrySublot(sublotId: string, data: any, organi
 export async function deleteLinesEntry(id: string, organizationId: string) {
   await supabaseAdmin.from("lines_entry_sublots").delete().eq("lines_entry_id", id);
   const { error } = await supabaseAdmin
-    .from("lines_entries")
+    .from("lines_entry")
     .delete()
     .eq("id", id)
     .eq("organization_id", organizationId);
