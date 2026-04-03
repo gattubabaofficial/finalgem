@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   AlertTriangle, 
   ArrowLeft, 
@@ -20,12 +20,53 @@ import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { useRole } from "@/hooks/useRole";
 
+// Helper components moved up for clearer module structure
+function ModernField({ label, value, icon, children }: any) {
+  return (
+    <div className="mb-2 group">
+      <label className="text-secondary small d-flex align-items-center gap-2 mb-2 fw-bold tracking-widest uppercase opacity-60" style={{ fontSize: '0.65rem' }}>
+        <span className="text-primary">{icon}</span> {label}
+      </label>
+      {children || <div className="fw-extrabold text-navy fs-4 tracking-tight">{value}</div>}
+    </div>
+  );
+}
+
+function ModernSmallField({ label, value, unit, accent }: any) {
+  const isRose = accent === 'rose';
+  const textColorClass = isRose ? 'text-rose' : 'text-primary';
+  const bgColorClass = isRose ? 'bg-white' : 'bg-white';
+  
+  return (
+    <div className={`${bgColorClass} p-4 rounded-4 shadow-sm h-100 border border-light border-opacity-50 transition-standard hover-translate-y border-bottom-rose`}>
+      <div className="text-secondary small fw-bold uppercase tracking-widest mb-2 opacity-50" style={{ fontSize: '0.6rem' }}>{label}</div>
+      <div className={`fw-extrabold fs-4 ${textColorClass} letter-tight`}>
+        {value || "0"}
+        {unit && <span className="small opacity-50 fw-bold ms-1" style={{ fontSize: '0.75rem' }}>{unit}</span>}
+      </div>
+      <style jsx>{`
+        .border-bottom-rose { border-bottom: 3px solid ${isRose ? '#f43f5e' : '#4f46e5'}20 !important; }
+      `}</style>
+    </div>
+  );
+}
+
+function ModernStatRow({ label, value, color = "text-white", isLarge = false }: any) {
+  return (
+    <div className="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-5 pb-3 mb-3 last:border-0 last:mb-0">
+      <span className="small opacity-50 fw-bold uppercase tracking-widest" style={{ fontSize: '0.65rem' }}>{label}</span>
+      <span className={`fw-extrabold font-mono ${isLarge ? 'fs-3' : 'fs-5'} ${color} letter-tight`}>{value}</span>
+    </div>
+  );
+}
+
 interface RejectionDetailProps {
   params: Promise<{ type: string; id: string }>;
 }
 
 export default function RejectionDetailPage({ params }: RejectionDetailProps) {
-  const { type, id } = use(params);
+  // Use React.use to unwrap Promise params (Next.js 15 pattern)
+  const { type, id } = React.use(params);
   const { isAdmin } = useRole();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -235,7 +276,7 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
             </div>
 
             {/* Rejected Metrics Summary */}
-            <div className="card border-0 shadow-premium rounded-5 bg-rose-subtle-25 border border-rose border-opacity-10 overflow-hidden">
+            <div className="card shadow-premium rounded-5 bg-rose-subtle-25 border border-rose border-opacity-10 overflow-hidden">
               <div className="card-body p-4 p-md-5">
                 <div className="d-flex align-items-center gap-3 mb-4 pb-2">
                   <div className="p-2 bg-rose rounded-3 text-white shadow-sm flex-shrink-0">
@@ -338,45 +379,6 @@ export default function RejectionDetailPage({ params }: RejectionDetailProps) {
         .tracking-tight { letter-spacing: -0.01em; }
         .space-y-4 > * + * { margin-top: 1.25rem; }
       `}</style>
-    </div>
-  );
-}
-
-function ModernField({ label, value, icon, children }: any) {
-  return (
-    <div className="mb-2 group">
-      <label className="text-secondary small d-flex align-items-center gap-2 mb-2 fw-bold tracking-widest uppercase opacity-60" style={{ fontSize: '0.65rem' }}>
-        <span className="text-primary">{icon}</span> {label}
-      </label>
-      {children || <div className="fw-extrabold text-navy fs-4 tracking-tight">{value}</div>}
-    </div>
-  );
-}
-
-function ModernSmallField({ label, value, unit, accent }: any) {
-  const isRose = accent === 'rose';
-  const textColorClass = isRose ? 'text-rose' : 'text-primary';
-  const bgColorClass = isRose ? 'bg-white' : 'bg-white';
-  
-  return (
-    <div className={`${bgColorClass} p-4 rounded-4 shadow-sm h-100 border border-light border-opacity-50 transition-standard hover-translate-y border-bottom-rose`}>
-      <div className="text-secondary small fw-bold uppercase tracking-widest mb-2 opacity-50" style={{ fontSize: '0.6rem' }}>{label}</div>
-      <div className={`fw-extrabold fs-4 ${textColorClass} letter-tight`}>
-        {value || "0"}
-        {unit && <span className="small opacity-50 fw-bold ms-1" style={{ fontSize: '0.75rem' }}>{unit}</span>}
-      </div>
-      <style jsx>{`
-        .border-bottom-rose { border-bottom: 3px solid ${isRose ? '#f43f5e' : '#4f46e5'}20 !important; }
-      `}</style>
-    </div>
-  );
-}
-
-function ModernStatRow({ label, value, color = "text-white", isLarge = false }: any) {
-  return (
-    <div className="d-flex justify-content-between align-items-center border-bottom border-white border-opacity-5 pb-3 mb-3 last:border-0 last:mb-0">
-      <span className="small opacity-50 fw-bold uppercase tracking-widest" style={{ fontSize: '0.65rem' }}>{label}</span>
-      <span className={`fw-extrabold font-mono ${isLarge ? 'fs-3' : 'fs-5'} ${color} letter-tight`}>{value}</span>
     </div>
   );
 }
