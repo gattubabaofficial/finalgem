@@ -69,13 +69,13 @@ export async function GET(req: NextRequest) {
     // Also check lines_entry_sublots for matching sublot_no
     const { data: matchedSublots } = await supabaseAdmin
       .from("lines_entry_sublots")
-      .select("sublot_no, lines_entries(lot_no, organization_id)")
+      .select("sublot_no, lines_entry(lot_no, organization_id)")
       .ilike("sublot_no", `%${search}%`)
       .eq("organization_id", organizationId);
 
     // Collect any extra lot_numbers from the sublot match
     const sublotLotNumbers: string[] = (matchedSublots || [])
-      .map((s: any) => s.lines_entries?.lot_no)
+      .map((s: any) => s.lines_entry?.lot_no)
       .filter(Boolean);
 
     // If sublots match, fetch those parent lots too
@@ -153,8 +153,8 @@ async function buildDetailResponse(lotId: string, organizationId: string) {
     supabaseAdmin.from("manufacturing").select("*").eq("lot_id", lot.id).eq("organization_id", organizationId),
     supabaseAdmin.from("rejections").select("*").eq("lot_id", lot.id).eq("organization_id", organizationId),
     supabaseAdmin.from("sales").select("*").eq("lot_id", lot.id).eq("organization_id", organizationId),
-    supabaseAdmin.from("lines_entries").select("*, sublots:lines_entry_sublots(*)").eq("lot_no", lot.lot_number).eq("organization_id", organizationId).maybeSingle(),
-    supabaseAdmin.from("lines_entry_sublots").select("*, master:lines_entries(*)").eq("sublot_no", lot.lot_number).eq("organization_id", organizationId).maybeSingle(),
+    supabaseAdmin.from("lines_entry").select("*, sublots:lines_entry_sublots(*)").eq("lot_no", lot.lot_number).eq("organization_id", organizationId).maybeSingle(),
+    supabaseAdmin.from("lines_entry_sublots").select("*, master:lines_entry(*)").eq("sublot_no", lot.lot_number).eq("organization_id", organizationId).maybeSingle(),
   ]);
 
   const totalPurchaseCost     = (lot.purchases || []).reduce((a: number, p: any) => a + (p.total_cost || 0), 0);

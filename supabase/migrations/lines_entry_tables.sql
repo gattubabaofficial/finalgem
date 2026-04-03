@@ -6,10 +6,10 @@
 
 -- Drop old tables if they exist (safe for fresh installs)
 DROP TABLE IF EXISTS lines_entry_sublots CASCADE;
-DROP TABLE IF EXISTS lines_entries CASCADE;
+DROP TABLE IF EXISTS lines_entry CASCADE;
 
--- 1. Master lines_entries table
-CREATE TABLE lines_entries (
+-- 1. Master lines_entry table
+CREATE TABLE lines_entry (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
 
@@ -51,7 +51,7 @@ CREATE TABLE lines_entries (
 CREATE TABLE lines_entry_sublots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  lines_entry_id UUID NOT NULL REFERENCES lines_entries(id) ON DELETE CASCADE,
+  lines_entry_id UUID NOT NULL REFERENCES lines_entry(id) ON DELETE CASCADE,
   sublot_no TEXT,                     -- e.g. "LE-001-1", "LE-001-2"
   sublot_index INTEGER DEFAULT 1,     -- 1-based position within the bunch
 
@@ -77,18 +77,18 @@ CREATE TABLE lines_entry_sublots (
 );
 
 -- 3. Indexes
-CREATE INDEX idx_lines_entries_org ON lines_entries(organization_id);
-CREATE INDEX idx_lines_entries_date ON lines_entries(date DESC);
+CREATE INDEX idx_lines_entry_org ON lines_entry(organization_id);
+CREATE INDEX idx_lines_entry_date ON lines_entry(date DESC);
 CREATE INDEX idx_lines_entry_sublots_entry ON lines_entry_sublots(lines_entry_id);
 CREATE INDEX idx_lines_entry_sublots_org ON lines_entry_sublots(organization_id);
 CREATE INDEX idx_lines_entry_sublots_index ON lines_entry_sublots(lines_entry_id, sublot_index);
 
 -- 4. Row Level Security
-ALTER TABLE lines_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lines_entry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lines_entry_sublots ENABLE ROW LEVEL SECURITY;
 
 -- 5. Allow service role full access (used by supabaseAdmin)
-CREATE POLICY "service_role_lines_entries" ON lines_entries
+CREATE POLICY "service_role_lines_entry" ON lines_entry
   FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "service_role_lines_entry_sublots" ON lines_entry_sublots
