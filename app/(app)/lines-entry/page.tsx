@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Loader2, AlertCircle, AlignJustify } from "lucide-react";
+import { Plus, Search, Loader2, AlertCircle, AlignJustify, Package, Calendar, User, Info, Scale } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import ModalPortal from "@/components/ModalPortal";
 import Link from "next/link";
@@ -26,6 +26,11 @@ const EMPTY_SUBLOT = {
   rejectionLengthInch: "",
   rejectionLengthMm: "",
   rejectionLengthCm: "",
+  grossWeight: "",
+  lessWeight: "0",
+  weightUnit: "G",
+  size: "",
+  shape: "",
 };
 
 const INITIAL_FORM = {
@@ -34,6 +39,11 @@ const INITIAL_FORM = {
   itemName: "",
   supplier: "",
   descriptionRef: "",
+  grossWeight: "",
+  lessWeight: "0",
+  weightUnit: "G",
+  size: "",
+  shape: "",
   // Master lines fields
   noOfLines: "",
   lineLengthInch: "",
@@ -160,14 +170,21 @@ export default function LinesEntryPage() {
   return (
     <div>
       {/* Header */}
-      <div className="gem-page-header">
-        <div>
-          <h1>Lines Entry</h1>
-          <p>{total} total records</p>
+      <div className="bg-primary-gradient shadow-lg rounded-5 mx-0 mt-0 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 px-4 py-4 border border-white border-opacity-10 overflow-hidden position-relative">
+        <div className="position-absolute top-0 start-0 w-100 h-100 opacity-10 bg-white" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 70%)' }}></div>
+        <div className="d-flex align-items-center gap-3 position-relative z-1">
+          <div className="bg-white text-primary p-3 rounded-4 shadow-sm border border-white border-opacity-20 animate-fade-in">
+            <AlignJustify size={24} />
+          </div>
+          <div>
+            <h1 className="fw-extrabold text-white m-0 letter-tight drop-shadow-sm fs-2">Lines Entry</h1>
+            <p className="text-white text-opacity-80 m-0 small fw-bold tracking-wide uppercase" style={{ fontSize: '0.65rem' }}>{total} total records in system</p>
+          </div>
         </div>
-        <div>
-          <button onClick={() => setShowForm(true)} className="btn btn-primary">
-            <Plus size={16} /> New Entry
+        <div className="position-relative z-1">
+          <button onClick={() => setShowForm(true)} className="btn bg-white text-primary d-flex align-items-center gap-2 px-4 py-3 rounded-4 shadow-sm fw-extrabold border-0 transition-all hover-scale">
+            <Plus size={20} />
+            <span>New Entry</span>
           </button>
         </div>
       </div>
@@ -254,20 +271,61 @@ export default function LinesEntryPage() {
                     {/* Basic Info */}
                     <div className="row g-3 mb-3">
                       <Field label="Entry No *" className="col-md-6">
-                        <input required value={form.entryNo} onChange={(e) => f("entryNo", e.target.value)} placeholder="e.g. LE-001" className="form-control" />
+                        <div className="input-group">
+                           <span className="input-group-text bg-light border-end-0"><Info size={16} className="text-muted" /></span>
+                           <input required value={form.entryNo} onChange={(e) => f("entryNo", e.target.value)} placeholder="e.g. LE-001" className="form-control" />
+                        </div>
                       </Field>
                       <Field label="Date *" className="col-md-6">
-                        <input required type="date" value={form.date} onChange={(e) => f("date", e.target.value)} className="form-control" />
+                        <div className="input-group">
+                           <span className="input-group-text bg-light border-end-0"><Calendar size={16} className="text-muted" /></span>
+                           <input required type="date" value={form.date} onChange={(e) => f("date", e.target.value)} className="form-control" />
+                        </div>
                       </Field>
                       <Field label="Item Name" className="col-md-6">
-                        <input value={form.itemName} onChange={(e) => f("itemName", e.target.value)} placeholder="e.g. Gold Chain" className="form-control" />
+                         <div className="input-group">
+                           <span className="input-group-text bg-light border-end-0"><Package size={16} className="text-muted" /></span>
+                           <input value={form.itemName} onChange={(e) => f("itemName", e.target.value)} placeholder="e.g. Gold Chain" className="form-control" />
+                         </div>
                       </Field>
                       <Field label="Supplier" className="col-md-6">
-                        <input value={form.supplier} onChange={(e) => f("supplier", e.target.value)} placeholder="Supplier name" className="form-control" />
+                         <div className="input-group">
+                           <span className="input-group-text bg-light border-end-0"><User size={16} className="text-muted" /></span>
+                           <input value={form.supplier} onChange={(e) => f("supplier", e.target.value)} placeholder="Supplier name" className="form-control" />
+                         </div>
                       </Field>
                       <Field label="Description / Reference" className="col-md-12">
                         <input value={form.descriptionRef} onChange={(e) => f("descriptionRef", e.target.value)} placeholder="Notes..." className="form-control" />
                       </Field>
+                    </div>
+
+                    {/* Weights & Specs */}
+                    <div className="pt-3 border-top mb-4">
+                      <p className="small fw-bold text-muted text-uppercase mb-3">Weights & Appearance</p>
+                      <div className="row g-3">
+                        <Field label="Gross Weight" className="col-md-4">
+                           <div className="input-group">
+                              <span className="input-group-text bg-light border-end-0"><Scale size={16} className="text-muted" /></span>
+                              <input type="number" step="0.001" value={form.grossWeight} onChange={(e) => f("grossWeight", e.target.value)} placeholder="0.000" className="form-control" />
+                           </div>
+                        </Field>
+                        <Field label="Less Weight" className="col-md-4">
+                           <input type="number" step="0.001" value={form.lessWeight} onChange={(e) => f("lessWeight", e.target.value)} placeholder="0.000" className="form-control" />
+                        </Field>
+                        <Field label="Weight Unit" className="col-md-4">
+                           <select value={form.weightUnit} onChange={(e) => f("weightUnit", e.target.value)} className="form-select">
+                              <option value="G">Grams (G)</option>
+                              <option value="KG">Kilograms (KG)</option>
+                              <option value="CT">Carat (CT)</option>
+                           </select>
+                        </Field>
+                        <Field label="Size" className="col-md-6">
+                           <input value={form.size} onChange={(e) => f("size", e.target.value)} placeholder="e.g. 10mm" className="form-control" />
+                        </Field>
+                        <Field label="Shape" className="col-md-6">
+                           <input value={form.shape} onChange={(e) => f("shape", e.target.value)} placeholder="e.g. Round" className="form-control" />
+                        </Field>
+                      </div>
                     </div>
 
                     {/* Bunch */}
@@ -404,6 +462,25 @@ export default function LinesEntryPage() {
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Sublot Weight & Specs */}
+                          <div className="mt-4 pt-3 border-top">
+                            <p className="small fw-bold text-muted text-uppercase mb-3">Sublot Weight & Appearance</p>
+                            <div className="row g-3">
+                              <Field label="Gross Weight" className="col-md-3">
+                                 <input type="number" step="0.001" value={sublotForm.grossWeight || ""} onChange={(e) => sf("grossWeight", e.target.value)} placeholder="0.000" className="form-control" />
+                              </Field>
+                              <Field label="Less Weight" className="col-md-3">
+                                 <input type="number" step="0.001" value={sublotForm.lessWeight || ""} onChange={(e) => sf("lessWeight", e.target.value)} placeholder="0.000" className="form-control" />
+                              </Field>
+                              <Field label="Size" className="col-md-3">
+                                 <input value={sublotForm.size || ""} onChange={(e) => sf("size", e.target.value)} placeholder="Size" className="form-control" />
+                              </Field>
+                              <Field label="Shape" className="col-md-3">
+                                 <input value={sublotForm.shape || ""} onChange={(e) => sf("shape", e.target.value)} placeholder="Shape" className="form-control" />
+                              </Field>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -421,6 +498,17 @@ export default function LinesEntryPage() {
           </div>
         </ModalPortal>
       )}
+      <style jsx>{`
+        .bg-primary-gradient { background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important; }
+        .rounded-5 { border-radius: 1.75rem !important; }
+        .rounded-4 { border-radius: 1.1rem !important; }
+        .fw-extrabold { font-weight: 800; }
+        .letter-tight { letter-spacing: -0.03em; }
+        .drop-shadow-sm { filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
+        .hover-scale:hover:not(:disabled) { transform: scale(1.02); }
+        .transition-all { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .letter-tight { letter-spacing: -0.025em; }
+      `}</style>
     </div>
   );
 }

@@ -74,6 +74,13 @@ CREATE TABLE lines_entry_sublots (
   rejection_length_mm NUMERIC(12, 4),
   rejection_length_cm NUMERIC(12, 4),
 
+  -- Physical specs per sublot (Purchase-like)
+  gross_weight NUMERIC(12, 4) DEFAULT 0,
+  less_weight NUMERIC(12, 4) DEFAULT 0,
+  weight_unit TEXT DEFAULT 'G',
+  size TEXT,
+  shape TEXT,
+
   -- Track if this sublot's selection was sent to Finished Goods
   sent_to_finished_goods BOOLEAN NOT NULL DEFAULT FALSE,
 

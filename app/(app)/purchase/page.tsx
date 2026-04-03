@@ -615,6 +615,27 @@ export default function PurchasePage() {
                                     <div className="col-6"><label className="small text-muted mb-0">CM</label><input type="number" step="0.001" className="form-control form-control-sm" value={s.rejectionLengthCm} onChange={(e) => lfs(idx, "rejectionLengthCm", e.target.value)} /></div>
                                   </div>
                                 </div>
+                                <div className="col-12 mt-2 pt-2 border-top">
+                                  <p className="small text-muted-600 fw-bold uppercase mb-2" style={{ fontSize: '0.6rem' }}>Weight & Specs</p>
+                                  <div className="row g-2">
+                                    <div className="col-3">
+                                      <label className="small text-muted mb-0">Gross Wt.</label>
+                                      <input type="number" step="0.001" className="form-control form-control-sm" value={s.grossWeight || ""} onChange={(e) => lfs(idx, "grossWeight", e.target.value)} />
+                                    </div>
+                                    <div className="col-3">
+                                      <label className="small text-muted mb-0">Less Wt.</label>
+                                      <input type="number" step="0.001" className="form-control form-control-sm" value={s.lessWeight || ""} onChange={(e) => lfs(idx, "lessWeight", e.target.value)} />
+                                    </div>
+                                    <div className="col-3">
+                                      <label className="small text-muted mb-0">Size</label>
+                                      <input className="form-control form-control-sm" value={s.size || ""} onChange={(e) => lfs(idx, "size", e.target.value)} />
+                                    </div>
+                                    <div className="col-3">
+                                      <label className="small text-muted mb-0">Shape</label>
+                                      <input className="form-control form-control-sm" value={s.shape || ""} onChange={(e) => lfs(idx, "shape", e.target.value)} />
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           ))}
