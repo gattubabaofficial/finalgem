@@ -61,12 +61,16 @@ a:hover { color: var(--gem-primary-dark); }
 
 /* ── Selection ── */
 ::selection {
-  background: rgba(93, 95, 239, 0.15); /* Subtle Indigo tint */
+  background: rgba(93, 95, 239, 0.12); /* Even more subtle Indigo tint */
   color: inherit;
 }
 ::-moz-selection {
-  background: rgba(93, 95, 239, 0.15);
+  background: rgba(93, 95, 239, 0.12);
   color: inherit;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ── Animations ── */
@@ -159,6 +163,31 @@ a:hover { color: var(--gem-primary-dark); }
   font-size: 13px;
   color: var(--gem-text-secondary);
   margin: 4px 0 0;
+}
+
+/* ── Clearer Back Button ── */
+.gem-back-button {
+  background: white;
+  color: var(--gem-primary);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all var(--gem-transition);
+  text-decoration: none;
+  box-shadow: var(--gem-shadow-sm);
+}
+.gem-back-button:hover {
+  background: var(--gem-primary-light);
+  transform: translateX(-3px);
+  box-shadow: var(--gem-shadow);
+  color: var(--gem-primary-dark);
+}
+.gem-back-button svg {
+  stroke-width: 2.5px;
 }
 
 /* ============================================================================

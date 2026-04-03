@@ -20,6 +20,13 @@ CREATE TABLE lines_entry (
   supplier TEXT,
   description_ref TEXT,
 
+  -- Shared Weight & Appearance fields (Purchase-like)
+  gross_weight NUMERIC(12, 4) DEFAULT 0,
+  less_weight NUMERIC(12, 4) DEFAULT 0,
+  weight_unit TEXT DEFAULT 'G',
+  size TEXT,
+  shape TEXT,
+
   -- Lines core fields
   no_of_lines INTEGER,
   line_length_inch NUMERIC(12, 4),
