@@ -36,7 +36,10 @@ export default function LoginPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const router = useRouter();
 
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
+    setIsClient(true);
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("verified") === "true") {
@@ -72,14 +75,18 @@ export default function LoginPage() {
     }
   }
 
+  if (!isClient) {
+    return <div suppressHydrationWarning style={{ minHeight: "100vh", background: "var(--gem-bg)" }} />;
+  }
+
   return (
-    <div style={{
+    <div suppressHydrationWarning style={{
       minHeight: "100vh",
       display: "flex",
       background: "var(--gem-bg)",
     }}>
       {/* Left: Form */}
-      <div style={{
+      <div suppressHydrationWarning style={{
         flex: 1,
         display: "flex",
         alignItems: "center",
@@ -204,7 +211,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right: Decorative Panel */}
-      <div style={{
+      <div suppressHydrationWarning style={{
         flex: 1,
         background: "linear-gradient(135deg, #3b8aff 0%, #725AF2 100%)",
         display: "flex",

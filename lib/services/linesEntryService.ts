@@ -1,6 +1,38 @@
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import { toCamelCase } from "@/lib/utils";
 
+// --- Safe Parsing Helpers to Prevent Supabase Integer/Float Errors ---
+const safeInt = (v: any) => {
+  if (v === null || v === undefined || v === "" || String(v).trim() === "") return null;
+  const p = parseInt(String(v), 10);
+  return isNaN(p) ? null : p;
+};
+
+const safeFloat = (v: any) => {
+  if (v === null || v === undefined || v === "" || String(v).trim() === "") return null;
+  const p = parseFloat(String(v));
+  return isNaN(p) ? null : p;
+};
+
+const safeFloatZero = (v: any) => {
+  const p = safeFloat(v);
+  return p === null ? 0 : p;
+};
+
+const safeIntZero = (v: any) => {
+  const p = safeInt(v);
+  return p === null ? 0 : p;
+};
+
+// --- Universal cleaner for empty strings ---
+const cleanEmptyStrings = (obj: Record<string, any>) => {
+  const cleaned: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    cleaned[k] = v === "" ? null : v;
+  }
+  return cleaned;
+};
+
 export async function getLinesEntries(organizationId: string, search?: string) {
   const { data, error } = await supabaseAdmin
     .from("lines_entry")
@@ -27,37 +59,43 @@ export async function getLinesEntries(organizationId: string, search?: string) {
 export async function createLinesEntry(data: any, organizationId: string) {
   if (!organizationId) throw new Error("Organization ID is required");
 
-  const bunch = Math.max(0, parseInt(data.bunch ?? "0") || 0);
+  const bunch = Math.max(0, safeIntZero(data.bunch));
+
+  const gw = safeFloatZero(data.grossWeight);
+  const lw = safeFloatZero(data.lessWeight);
+  if (lw < 0) throw new Error("Less weight cannot be negative.");
+  if (lw > gw && gw > 0) throw new Error("Less weight cannot be greater than gross weight.");
+  if (lw > 0 && gw === 0) throw new Error("Gross weight must be entered if less weight is provided.");
 
   // 1. Create the master lines entry
   const { data: entry, error: entryErr } = await supabaseAdmin
     .from("lines_entry")
-    .insert({
+    .insert(cleanEmptyStrings({
       lot_no: data.lotNo,
       date: data.date || new Date().toISOString(),
       item_name: data.itemName,
       supplier: data.supplier,
       description_ref: data.descriptionRef,
-      gross_weight: data.grossWeight ? parseFloat(data.grossWeight) : 0,
-      less_weight: data.lessWeight ? parseFloat(data.lessWeight) : 0,
+      gross_weight: gw,
+      less_weight: lw,
       weight_unit: data.weightUnit || 'G',
       size: data.size,
       shape: data.shape,
-      no_of_lines: data.noOfLines ? parseInt(data.noOfLines) : null,
-      line_length_inch: data.lineLengthInch ? parseFloat(data.lineLengthInch) : null,
-      line_length_mm: data.lineLengthMm ? parseFloat(data.lineLengthMm) : null,
-      line_length_cm: data.lineLengthCm ? parseFloat(data.lineLengthCm) : null,
-      selection_lines: data.selectionLines ? parseInt(data.selectionLines) : null,
-      selection_length_inch: data.selectionLengthInch ? parseFloat(data.selectionLengthInch) : null,
-      selection_length_mm: data.selectionLengthMm ? parseFloat(data.selectionLengthMm) : null,
-      selection_length_cm: data.selectionLengthCm ? parseFloat(data.selectionLengthCm) : null,
-      rejection_lines: data.rejectionLines ? parseInt(data.rejectionLines) : null,
-      rejection_length_inch: data.rejectionLengthInch ? parseFloat(data.rejectionLengthInch) : null,
-      rejection_length_mm: data.rejectionLengthMm ? parseFloat(data.rejectionLengthMm) : null,
-      rejection_length_cm: data.rejectionLengthCm ? parseFloat(data.rejectionLengthCm) : null,
+      no_of_lines: safeInt(data.noOfLines),
+      line_length_inch: safeFloat(data.lineLengthInch),
+      line_length_mm: safeFloat(data.lineLengthMm),
+      line_length_cm: safeFloat(data.lineLengthCm),
+      selection_lines: safeInt(data.selectionLines),
+      selection_length_inch: safeFloat(data.selectionLengthInch),
+      selection_length_mm: safeFloat(data.selectionLengthMm),
+      selection_length_cm: safeFloat(data.selectionLengthCm),
+      rejection_lines: safeInt(data.rejectionLines),
+      rejection_length_inch: safeFloat(data.rejectionLengthInch),
+      rejection_length_mm: safeFloat(data.rejectionLengthMm),
+      rejection_length_cm: safeFloat(data.rejectionLengthCm),
       bunch,
       organization_id: organizationId,
-    })
+    }))
     .select()
     .single();
 
@@ -67,26 +105,33 @@ export async function createLinesEntry(data: any, organizationId: string) {
   if (bunch > 0) {
     for (let i = 1; i <= bunch; i++) {
       const sub = (data.sublots && data.sublots[i - 1]) || {};
-      const { error: slErr } = await supabaseAdmin.from("lines_entry_sublots").insert({
+      
+      const subGw = safeFloatZero(sub.grossWeight);
+      const subLw = safeFloatZero(sub.lessWeight);
+      if (subLw < 0) throw new Error(`Sublot ${i}: Less weight cannot be negative.`);
+      if (subLw > subGw && subGw > 0) throw new Error(`Sublot ${i}: Less weight cannot be greater than gross weight.`);
+      if (subLw > 0 && subGw === 0) throw new Error(`Sublot ${i}: Gross weight must be entered if less weight is provided.`);
+
+      const { error: slErr } = await supabaseAdmin.from("lines_entry_sublots").insert(cleanEmptyStrings({
         lines_entry_id: entry.id,
-        sublot_no: sub.sublotNo || "",
+        sublot_no: sub.sublotNo || null,
         sublot_index: i,
-        selection_lines: sub.selectionLines ? parseInt(sub.selectionLines) : null,
-        selection_length_inch: sub.selectionLengthInch ? parseFloat(sub.selectionLengthInch) : null,
-        selection_length_mm: sub.selectionLengthMm ? parseFloat(sub.selectionLengthMm) : null,
-        selection_length_cm: sub.selectionLengthCm ? parseFloat(sub.selectionLengthCm) : null,
-        rejection_lines: sub.rejectionLines ? parseInt(sub.rejectionLines) : null,
-        rejection_length_inch: sub.rejectionLengthInch ? parseFloat(sub.rejectionLengthInch) : null,
-        rejection_length_mm: sub.rejectionLengthMm ? parseFloat(sub.rejectionLengthMm) : null,
-        rejection_length_cm: sub.rejectionLengthCm ? parseFloat(sub.rejectionLengthCm) : null,
-        gross_weight: sub.grossWeight ? parseFloat(sub.grossWeight) : 0,
-        less_weight: sub.lessWeight ? parseFloat(sub.lessWeight) : 0,
+        selection_lines: safeInt(sub.selectionLines),
+        selection_length_inch: safeFloat(sub.selectionLengthInch),
+        selection_length_mm: safeFloat(sub.selectionLengthMm),
+        selection_length_cm: safeFloat(sub.selectionLengthCm),
+        rejection_lines: safeInt(sub.rejectionLines),
+        rejection_length_inch: safeFloat(sub.rejectionLengthInch),
+        rejection_length_mm: safeFloat(sub.rejectionLengthMm),
+        rejection_length_cm: safeFloat(sub.rejectionLengthCm),
+        gross_weight: subGw,
+        less_weight: subLw,
         weight_unit: sub.weightUnit || 'G',
         size: sub.size,
         shape: sub.shape,
         sent_to_finished_goods: false,
         organization_id: organizationId,
-      });
+      }));
       if (slErr) throw new Error(`Sublot ${i}: ${slErr.message}`);
     }
   }
@@ -106,41 +151,47 @@ export async function getLinesEntryById(id: string, organizationId: string) {
   const result = toCamelCase(data);
   // Sort sublots by index
   if (result?.sublots) {
-    result.sublots.sort((a: any, b: any) => (a.sublotIndex ?? 0) - (b.sublotIndex ?? 0));
+    result.sublots.sort((a: any, b: any) => (safeInt(a.sublotIndex) ?? 0) - (safeInt(b.sublotIndex) ?? 0));
   }
   return result;
 }
 
 export async function updateLinesEntry(id: string, data: any, organizationId: string) {
-  const bunch = Math.max(0, parseInt(data.bunch ?? "0") || 0);
+  const bunch = Math.max(0, safeIntZero(data.bunch));
+
+  const gw = safeFloatZero(data.grossWeight);
+  const lw = safeFloatZero(data.lessWeight);
+  if (lw < 0) throw new Error("Less weight cannot be negative.");
+  if (lw > gw && gw > 0) throw new Error("Less weight cannot be greater than gross weight.");
+  if (lw > 0 && gw === 0) throw new Error("Gross weight must be entered if less weight is provided.");
 
   const { data: updated, error: updErr } = await supabaseAdmin
     .from("lines_entry")
-    .update({
+    .update(cleanEmptyStrings({
       lot_no: data.lotNo,
       date: data.date,
       item_name: data.itemName,
       supplier: data.supplier,
       description_ref: data.descriptionRef,
-      gross_weight: data.grossWeight ? parseFloat(data.grossWeight) : 0,
-      less_weight: data.lessWeight ? parseFloat(data.lessWeight) : 0,
+      gross_weight: gw,
+      less_weight: lw,
       weight_unit: data.weightUnit || 'G',
       size: data.size,
       shape: data.shape,
-      no_of_lines: data.noOfLines ? parseInt(data.noOfLines) : null,
-      line_length_inch: data.lineLengthInch ? parseFloat(data.lineLengthInch) : null,
-      line_length_mm: data.lineLengthMm ? parseFloat(data.lineLengthMm) : null,
-      line_length_cm: data.lineLengthCm ? parseFloat(data.lineLengthCm) : null,
-      selection_lines: data.selectionLines ? parseInt(data.selectionLines) : null,
-      selection_length_inch: data.selectionLengthInch ? parseFloat(data.selectionLengthInch) : null,
-      selection_length_mm: data.selectionLengthMm ? parseFloat(data.selectionLengthMm) : null,
-      selection_length_cm: data.selectionLengthCm ? parseFloat(data.selectionLengthCm) : null,
-      rejection_lines: data.rejectionLines ? parseInt(data.rejectionLines) : null,
-      rejection_length_inch: data.rejectionLengthInch ? parseFloat(data.rejectionLengthInch) : null,
-      rejection_length_mm: data.rejectionLengthMm ? parseFloat(data.rejectionLengthMm) : null,
-      rejection_length_cm: data.rejectionLengthCm ? parseFloat(data.rejectionLengthCm) : null,
+      no_of_lines: safeInt(data.noOfLines),
+      line_length_inch: safeFloat(data.lineLengthInch),
+      line_length_mm: safeFloat(data.lineLengthMm),
+      line_length_cm: safeFloat(data.lineLengthCm),
+      selection_lines: safeInt(data.selectionLines),
+      selection_length_inch: safeFloat(data.selectionLengthInch),
+      selection_length_mm: safeFloat(data.selectionLengthMm),
+      selection_length_cm: safeFloat(data.selectionLengthCm),
+      rejection_lines: safeInt(data.rejectionLines),
+      rejection_length_inch: safeFloat(data.rejectionLengthInch),
+      rejection_length_mm: safeFloat(data.rejectionLengthMm),
+      rejection_length_cm: safeFloat(data.rejectionLengthCm),
       bunch,
-    })
+    }))
     .eq("id", id)
     .eq("organization_id", organizationId)
     .select()
@@ -180,30 +231,36 @@ export async function updateLinesEntry(id: string, data: any, organizationId: st
 }
 
 export async function updateLinesEntrySublot(sublotId: string, data: any, organizationId: string) {
+  const gw = safeFloatZero(data.grossWeight);
+  const lw = safeFloatZero(data.lessWeight);
+  if (lw < 0) throw new Error("Less weight cannot be negative.");
+  if (lw > gw && gw > 0) throw new Error("Less weight cannot be greater than gross weight.");
+  if (lw > 0 && gw === 0) throw new Error("Gross weight must be entered if less weight is provided.");
+
   const { data: updated, error } = await supabaseAdmin
     .from("lines_entry_sublots")
-    .update({
+    .update(cleanEmptyStrings({
       // User-editable sublot number
       sublot_no: data.sublotNo ?? undefined,
       // Selection
-      selection_lines: data.selectionLines !== "" && data.selectionLines != null ? parseInt(data.selectionLines) : null,
-      selection_length_inch: data.selectionLengthInch !== "" && data.selectionLengthInch != null ? parseFloat(data.selectionLengthInch) : null,
-      selection_length_mm: data.selectionLengthMm !== "" && data.selectionLengthMm != null ? parseFloat(data.selectionLengthMm) : null,
-      selection_length_cm: data.selectionLengthCm !== "" && data.selectionLengthCm != null ? parseFloat(data.selectionLengthCm) : null,
+      selection_lines: safeInt(data.selectionLines),
+      selection_length_inch: safeFloat(data.selectionLengthInch),
+      selection_length_mm: safeFloat(data.selectionLengthMm),
+      selection_length_cm: safeFloat(data.selectionLengthCm),
       // Rejection
-      rejection_lines: data.rejectionLines !== "" && data.rejectionLines != null ? parseInt(data.rejectionLines) : null,
-      rejection_length_inch: data.rejectionLengthInch !== "" && data.rejectionLengthInch != null ? parseFloat(data.rejectionLengthInch) : null,
-      rejection_length_mm: data.rejectionLengthMm !== "" && data.rejectionLengthMm != null ? parseFloat(data.rejectionLengthMm) : null,
-      rejection_length_cm: data.rejectionLengthCm !== "" && data.rejectionLengthCm != null ? parseFloat(data.rejectionLengthCm) : null,
+      rejection_lines: safeInt(data.rejectionLines),
+      rejection_length_inch: safeFloat(data.rejectionLengthInch),
+      rejection_length_mm: safeFloat(data.rejectionLengthMm),
+      rejection_length_cm: safeFloat(data.rejectionLengthCm),
       // Physical specs
-      gross_weight: data.grossWeight !== "" && data.grossWeight != null ? parseFloat(data.grossWeight) : 0,
-      less_weight: data.lessWeight !== "" && data.lessWeight != null ? parseFloat(data.lessWeight) : 0,
+      gross_weight: gw,
+      less_weight: lw,
       weight_unit: data.weightUnit || 'G',
-      size: data.size || "",
-      shape: data.shape || "",
+      size: data.size,
+      shape: data.shape,
       // FG flag
       sent_to_finished_goods: data.sentToFinishedGoods ?? false,
-    })
+    }))
     .eq("id", sublotId)
     .eq("organization_id", organizationId)
     .select()
@@ -257,15 +314,15 @@ export async function updateLinesEntrySublot(sublotId: string, data: any, organi
             supplier_name: data.supplier,
             category: "READY_GOODS",
             description_ref: data.descriptionRef,
-            gross_weight: data.grossWeight ? parseFloat(data.grossWeight) : 0,
-            less_weight: data.lessWeight ? parseFloat(data.lessWeight) : 0,
-            net_weight: (parseFloat(data.grossWeight || "0") - parseFloat(data.lessWeight || "0")),
+            gross_weight: safeFloatZero(data.grossWeight),
+            less_weight: safeFloatZero(data.lessWeight),
+            net_weight: safeFloatZero(data.grossWeight) - safeFloatZero(data.lessWeight),
             weight_unit: data.weightUnit || "G",
             size: data.size,
             shape: data.shape,
-            lines: data.selectionLines ? parseInt(data.selectionLines) : 0,
-            line_length: data.selectionLengthInch ? parseFloat(data.selectionLengthInch) : 0,
-            quantity: data.selectionLines ? parseInt(data.selectionLines) : 0,
+            lines: safeIntZero(data.selectionLines),
+            line_length: safeFloatZero(data.selectionLengthInch),
+            quantity: safeIntZero(data.selectionLines),
             status: "IN_STOCK",
             organization_id: organizationId,
           })
@@ -282,15 +339,15 @@ export async function updateLinesEntrySublot(sublotId: string, data: any, organi
               item_name: itemName,
               description_ref: data.descriptionRef,
               date: new Date().toISOString(),
-              gross_weight: data.grossWeight ? parseFloat(data.grossWeight) : 0,
-              less_weight: data.lessWeight ? parseFloat(data.lessWeight) : 0,
-              net_weight: (parseFloat(data.grossWeight || "0") - parseFloat(data.lessWeight || "0")),
+              gross_weight: safeFloatZero(data.grossWeight),
+              less_weight: safeFloatZero(data.lessWeight),
+              net_weight: safeFloatZero(data.grossWeight) - safeFloatZero(data.lessWeight),
               weight_unit: data.weightUnit || "G",
               size: data.size,
               shape: data.shape,
-              lines: data.selectionLines ? parseInt(data.selectionLines) : 0,
-              line_length: data.selectionLengthInch ? parseFloat(data.selectionLengthInch) : 0,
-              pieces: data.selectionLines ? parseInt(data.selectionLines) : 0,
+              lines: safeIntZero(data.selectionLines),
+              line_length: safeFloatZero(data.selectionLengthInch),
+              pieces: safeIntZero(data.selectionLines),
               purchase_price: 0,
               total_cost: 0,
               cost_per_gram: 0,
@@ -305,8 +362,8 @@ export async function updateLinesEntrySublot(sublotId: string, data: any, organi
           await supabaseAdmin.from("stock_ledgers").insert({
             product_id: product.id,
             transaction_type: "PURCHASE",
-            weight: (parseFloat(data.grossWeight || "0") - parseFloat(data.lessWeight || "0")),
-            quantity: data.selectionLines ? parseInt(data.selectionLines) : 0,
+            weight: safeFloatZero(data.grossWeight) - safeFloatZero(data.lessWeight),
+            quantity: safeIntZero(data.selectionLines),
             reference_id: purchase.id,
             organization_id: organizationId,
           });

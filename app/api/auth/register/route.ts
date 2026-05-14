@@ -73,7 +73,13 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (orgErr) throw new Error(orgErr.message);
+    if (orgErr) {
+      console.error("[register] Organization creation error:", orgErr);
+      if (orgErr.code === "23505" || orgErr.message?.includes("unique")) {
+        return NextResponse.json({ error: "An organization with this name already exists. Please choose a different organization name." }, { status: 400 });
+      }
+      throw new Error(`Organization Error: ${orgErr.message}`);
+    }
 
     // ── 2. Create the custom user record (is_verified = false) ──
     const hashedPassword = await bcrypt.hash(password, 12);

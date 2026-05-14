@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
@@ -55,9 +55,14 @@ export default function RegisterPage() {
   const [verificationCode, setVerificationCode] = useState("");
   const router = useRouter();
 
+  const [isClient, setIsClient] = useState(false);
   const strength = useMemo(() => getPasswordStrength(password), [password]);
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   function handleEmailBlur() {
     if (email) setEmailError(validateEmail(email) || "");
@@ -126,8 +131,12 @@ export default function RegisterPage() {
     color: "var(--gem-text-secondary)",
   };
 
+  if (!isClient) {
+    return <div suppressHydrationWarning style={{ minHeight: "100vh", background: "var(--gem-bg)" }} />;
+  }
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", background: "var(--gem-bg)" }}>
+    <div suppressHydrationWarning style={{ minHeight: "100vh", display: "flex", background: "var(--gem-bg)" }}>
       {/* Left: Form */}
       <div style={{
         flex: 1,
